@@ -1,0 +1,126 @@
+// Lesson 026 — MongoDB Data Types and Limits
+// Topic-specific mongosh demo
+// Focus: BSON data types, numeric types, and the 16 MiB document limit.
+
+// 1. Start clean
+use Lesson026_DataTypes_Limits
+db.dropDatabase()
+
+// 2. Create one document containing common MongoDB data types
+db.typeDemo.insertOne({
+  stringValue: "MongoDB",
+  int32Value: NumberInt(100),
+  int64Value: NumberLong("9007199254740991"),
+  doubleValue: 99.95,
+  decimalValue: Decimal128("999999.99"),
+  booleanValue: true,
+  dateValue: ISODate("2026-09-26T10:00:00Z"),
+  objectIdValue: new ObjectId(),
+  arrayValue: ["MongoDB", "Java", "Python"],
+  objectValue: {
+    city: "Chennai",
+    country: "India"
+  },
+  nullValue: null
+})
+
+// 3. Inspect the document
+db.typeDemo.findOne()
+
+// 4. Check the BSON type of each field
+db.typeDemo.aggregate([
+  {
+    $project: {
+      stringValue: { $type: "$stringValue" },
+      int32Value: { $type: "$int32Value" },
+      int64Value: { $type: "$int64Value" },
+      doubleValue: { $type: "$doubleValue" },
+      decimalValue: { $type: "$decimalValue" },
+      booleanValue: { $type: "$booleanValue" },
+      dateValue: { $type: "$dateValue" },
+      objectIdValue: { $type: "$objectIdValue" },
+      arrayValue: { $type: "$arrayValue" },
+      objectValue: { $type: "$objectValue" },
+      nullValue: { $type: "$nullValue" }
+    }
+  }
+])
+
+// 5. Demonstrate numeric types
+db.numericDemo.insertMany([
+  {
+    name: "Int32 example",
+    value: NumberInt(2147483647)
+  },
+  {
+    name: "Int64 example",
+    value: NumberLong("9223372036854775807")
+  },
+  {
+    name: "Double example",
+    value: 12345.6789
+  },
+  {
+    name: "Decimal128 example",
+    value: Decimal128("12345.6789")
+  }
+])
+
+db.numericDemo.find().pretty()
+
+// 6. Inspect numeric BSON types
+db.numericDemo.aggregate([
+  {
+    $project: {
+      name: 1,
+      valueType: { $type: "$value" },
+      _id: 0
+    }
+  }
+])
+
+// 7. Demonstrate decimal precision
+db.precisionDemo.insertOne({
+  doubleAmount: 0.1 + 0.2,
+  decimalAmount: Decimal128("0.3")
+})
+
+db.precisionDemo.findOne()
+
+// 8. Demonstrate the 16 MiB document limit
+// Generate a string larger than 16 MiB.
+const largeString = "X".repeat(16 * 1024 * 1024)
+
+try {
+  db.limitDemo.insertOne({
+    name: "Over16MiB",
+    payload: largeString
+  })
+} catch (e) {
+  print("Expected document-size error:")
+  print(e)
+}
+
+// 9. Create a document below the 16 MiB limit
+const safeString = "X".repeat(15 * 1024 * 1024)
+
+db.limitDemo.insertOne({
+  name: "Below16MiB",
+  payload: safeString
+})
+
+// 10. Verify the document was accepted
+db.limitDemo.findOne(
+  { name: "Below16MiB" },
+  { name: 1, _id: 0 }
+)
+
+// 11. Measure the approximate BSON size
+const acceptedDoc = db.limitDemo.findOne({ name: "Below16MiB" })
+Object.bsonsize(acceptedDoc)
+
+// 12. Final topic verification
+print("Lesson 026 demo completed.")
+print("Covered BSON data types, numeric representations, Decimal128, and the 16 MiB document limit.")
+
+// End of Lesson 026 demo

@@ -1,0 +1,73 @@
+// One-to-Many — Embedded
+// Example person: Avi
+// Location: Bangalore, RR Nagar
+
+use lesson031_demo
+db.dropDatabase()
+
+// Create one parent document with many related address objects embedded.
+db.people.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar",
+  addresses: [
+    {
+      type: "home",
+      city: "Bangalore",
+      area: "RR Nagar"
+    },
+    {
+      type: "office",
+      city: "Bangalore",
+      area: "RR Nagar"
+    },
+    {
+      type: "shipping",
+      city: "Bangalore",
+      area: "RR Nagar"
+    }
+  ]
+})
+
+// View Avi's document and the embedded one-to-many array.
+db.people.findOne({ name: "Avi" })
+
+// Return Avi with only the embedded address array.
+db.people.findOne(
+  { name: "Avi" },
+  { _id: 0, name: 1, location: 1, addresses: 1 }
+)
+
+// Find Avi when one embedded address has a specific type.
+db.people.findOne({
+  name: "Avi",
+  "addresses.type": "office"
+})
+
+// Add another related address to Avi's embedded array.
+db.people.updateOne(
+  { name: "Avi" },
+  {
+    $push: {
+      addresses: {
+        type: "billing",
+        city: "Bangalore",
+        area: "RR Nagar"
+      }
+    }
+  }
+)
+
+// Verify the updated one-to-many embedded relationship.
+db.people.findOne(
+  { name: "Avi" },
+  { _id: 0, name: 1, location: 1, addresses: 1 }
+)
+
+// Find Avi when any embedded address matches Bangalore.
+db.people.findOne({
+  name: "Avi",
+  "addresses.city": "Bangalore"
+})
+
+// Final inspection of the complete document.
+db.people.findOne({ name: "Avi" })

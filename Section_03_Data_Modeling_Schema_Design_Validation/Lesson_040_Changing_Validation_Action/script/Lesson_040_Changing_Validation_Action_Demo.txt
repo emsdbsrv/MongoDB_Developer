@@ -1,0 +1,138 @@
+// Changing Validation Action
+// Topic-specific mongosh demo
+// Recurring example: Order Management
+//
+// Focus:
+// - Start with a validated orders collection
+// - Use validationAction: "error"
+// - Test an invalid order
+// - Change only the action to "warn"
+// - Send the same invalid order again
+// - Restore "error"
+//
+// The validator itself is intentionally kept unchanged.
+
+use lesson040_demo
+db.dropDatabase()
+
+// 1. Create the orders collection with a document validator.
+// The validator defines the contract.
+// validationAction controls the response when that contract fails.
+db.createCollection("orders", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+
+      required: [
+        "orderId",
+        "status",
+        "orderDate",
+        "items"
+      ],
+
+      properties: {
+        orderId: {
+          bsonType: "string"
+        },
+
+        status: {
+          bsonType: "string"
+        },
+
+        orderDate: {
+          bsonType: "date"
+        },
+
+        items: {
+          bsonType: "array",
+          minItems: 1
+        }
+      }
+    }
+  },
+
+  validationAction: "error"
+})
+
+// 2. Inspect the collection definition.
+db.getCollectionInfos({
+  name: "orders"
+})
+
+// 3. Insert a valid order.
+// This should succeed with either validationAction setting.
+db.orders.insertOne({
+  orderId: "ORD-2000",
+  status: "CONFIRMED",
+  orderDate: ISODate("2026-09-26T10:30:00Z"),
+  items: [
+    {
+      productId: "P100",
+      quantity: 1
+    }
+  ]
+})
+
+// 4. Try an invalid order while validationAction = "error".
+// status is a number, but the validator requires a string.
+// items is empty, but minItems requires at least one item.
+try {
+  db.orders.insertOne({
+    orderId: "ORD-2001",
+    status: 7,
+    orderDate: ISODate("2026-09-26T11:00:00Z"),
+    items: []
+  })
+} catch (e) {
+  print("Expected rejection with validationAction = error:")
+  print(e)
+}
+
+// 5. Change only the validation action to warn.
+// The $jsonSchema contract remains unchanged.
+db.runCommand({
+  collMod: "orders",
+  validationAction: "warn"
+})
+
+// 6. Inspect the changed collection definition.
+db.getCollectionInfos({
+  name: "orders"
+})
+
+// 7. Send the SAME invalid shape again.
+// With validationAction = warn, the write is allowed
+// and MongoDB emits a validation warning.
+db.orders.insertOne({
+  orderId: "ORD-2002",
+  status: 7,
+  orderDate: ISODate("2026-09-26T11:15:00Z"),
+  items: []
+})
+
+// 8. Verify the invalid document was stored.
+db.orders.findOne({
+  orderId: "ORD-2002"
+})
+
+// 9. Restore strict error behavior.
+db.runCommand({
+  collMod: "orders",
+  validationAction: "error"
+})
+
+// 10. Verify the final action.
+db.getCollectionInfos({
+  name: "orders"
+})
+
+// 11. Confirm the earlier valid order is still present.
+db.orders.findOne({
+  orderId: "ORD-2000"
+})
+
+// 12. Final training message.
+print("Validator stayed the same throughout the demo.")
+print("validationAction changed the response to the same validation failure.")
+print("error = reject invalid writes.")
+print("warn = allow invalid writes and emit a validation warning.")

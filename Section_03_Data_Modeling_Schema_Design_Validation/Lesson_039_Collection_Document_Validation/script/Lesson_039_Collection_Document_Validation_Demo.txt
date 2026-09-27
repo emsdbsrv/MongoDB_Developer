@@ -1,0 +1,202 @@
+// Collection Document Validation
+// Topic-specific mongosh demo
+// Recurring example: Order Management
+//
+// Focus:
+// - Create a validated orders collection
+// - Define required order fields and BSON types
+// - Validate the items array at a basic document-shape level
+// - Test valid and invalid order documents
+// - Inspect the collection validator
+//
+// No other lesson topic is intentionally implemented here.
+
+use lesson039_demo
+db.dropDatabase()
+
+// 1. Create the orders collection with document validation.
+db.createCollection("orders", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+
+      required: [
+        "orderId",
+        "status",
+        "orderDate",
+        "items",
+        "payment"
+      ],
+
+      properties: {
+        orderId: {
+          bsonType: "string"
+        },
+
+        status: {
+          bsonType: "string"
+        },
+
+        orderDate: {
+          bsonType: "date"
+        },
+
+        shippingAddress: {
+          bsonType: "object"
+        },
+
+        items: {
+          bsonType: "array",
+          minItems: 1,
+          items: {
+            bsonType: "object",
+            required: [
+              "productId",
+              "quantity",
+              "unitPrice"
+            ],
+            properties: {
+              productId: {
+                bsonType: "string"
+              },
+              quantity: {
+                bsonType: "int",
+                minimum: 1
+              },
+              unitPrice: {
+                bsonType: "decimal"
+              }
+            }
+          }
+        },
+
+        payment: {
+          bsonType: "object",
+          required: [
+            "method",
+            "amount"
+          ],
+          properties: {
+            method: {
+              bsonType: "string"
+            },
+            amount: {
+              bsonType: "decimal"
+            }
+          }
+        }
+      }
+    }
+  }
+})
+
+// 2. Inspect the validator.
+db.getCollectionInfos({
+  name: "orders"
+})
+
+// 3. Insert a valid order.
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "CONFIRMED",
+  orderDate: ISODate("2026-09-26T10:30:00Z"),
+
+  shippingAddress: {
+    street: "RR Nagar",
+    city: "Bangalore",
+    state: "Karnataka",
+    country: "India"
+  },
+
+  items: [
+    {
+      productId: "P100",
+      quantity: NumberInt(1),
+      unitPrice: Decimal128("75000")
+    },
+    {
+      productId: "P200",
+      quantity: NumberInt(2),
+      unitPrice: Decimal128("1500")
+    }
+  ],
+
+  payment: {
+    method: "UPI",
+    amount: Decimal128("78000")
+  }
+})
+
+// 4. Verify the valid order.
+db.orders.findOne({
+  orderId: "ORD-1001"
+})
+
+// 5. Try an invalid order.
+// orderDate is a string instead of a BSON date.
+try {
+  db.orders.insertOne({
+    orderId: "ORD-1002",
+    status: "CONFIRMED",
+    orderDate: "2026-09-26",
+
+    shippingAddress: {
+      city: "Bangalore",
+      state: "Karnataka",
+      country: "India"
+    },
+
+    items: [
+      {
+        productId: "P300",
+        quantity: NumberInt(1),
+        unitPrice: Decimal128("1000")
+      }
+    ],
+
+    payment: {
+      method: "UPI",
+      amount: Decimal128("1000")
+    }
+  })
+} catch (e) {
+  print("Expected validation failure:")
+  print(e)
+}
+
+// 6. Try another invalid order.
+// quantity is Int32 but below the minimum of 1.
+try {
+  db.orders.insertOne({
+    orderId: "ORD-1003",
+    status: "CONFIRMED",
+    orderDate: ISODate("2026-09-26T11:00:00Z"),
+
+    items: [
+      {
+        productId: "P400",
+        quantity: NumberInt(0),
+        unitPrice: Decimal128("2500")
+      }
+    ],
+
+    payment: {
+      method: "UPI",
+      amount: Decimal128("2500")
+    }
+  })
+} catch (e) {
+  print("Expected validation failure:")
+  print(e)
+}
+
+// 7. Verify only the valid order is stored.
+db.orders.find().pretty()
+
+// 8. Final count.
+db.orders.countDocuments()
+
+// 9. Final training message.
+print("Order Management document validation demo completed.")
+print("Valid order accepted.")
+print("Invalid order documents rejected when they violate the declared contract.")

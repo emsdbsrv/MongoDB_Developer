@@ -1,0 +1,121 @@
+use lesson044_decimal128
+
+// Clean setup
+db.dropDatabase()
+
+// Compare floating-point and Decimal128 representations.
+db.price_examples.insertOne({
+  doubleA: 0.1,
+  doubleB: 0.2,
+  decimalA: Decimal128("0.1"),
+  decimalB: Decimal128("0.2")
+})
+
+db.price_examples.aggregate([
+  {
+    $project: {
+      _id: 0,
+      doubleSum: { $add: ["$doubleA", "$doubleB"] },
+      decimalSum: { $add: ["$decimalA", "$decimalB"] },
+      doubleType: { $type: "$doubleA" },
+      decimalType: { $type: "$decimalA" }
+    }
+  }
+])
+
+// Order Management price model.
+db.orders.insertOne({
+  orderId: "ORD-4401",
+  items: [
+    {
+      productId: "P100",
+      productName: "Laptop",
+      quantity: NumberInt(1),
+      unitPrice: Decimal128("75000.00"),
+      discount: Decimal128("5000.00")
+    },
+    {
+      productId: "P200",
+      productName: "Wireless Mouse",
+      quantity: NumberInt(2),
+      unitPrice: Decimal128("1500.50"),
+      discount: Decimal128("100.00")
+    }
+  ],
+  payment: {
+    method: "UPI",
+    status: "PAID",
+    amount: Decimal128("72902.00")
+  }
+})
+
+db.orders.findOne({ orderId: "ORD-4401" })
+
+// Discounted line totals.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      discountedLineTotals: {
+        $map: {
+          input: "$items",
+          as: "i",
+          in: {
+            productId: "$$i.productId",
+            discountedLineTotal: {
+              $subtract: [
+                { $multiply: ["$$i.quantity", "$$i.unitPrice"] },
+                "$$i.discount"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+])
+
+// Subtotal.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      subtotal: {
+        $sum: {
+          $map: {
+            input: "$items",
+            as: "i",
+            in: {
+              $subtract: [
+                { $multiply: ["$$i.quantity", "$$i.unitPrice"] },
+                "$$i.discount"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+])
+
+// Verify BSON types.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      unitPriceType: {
+        $type: { $arrayElemAt: ["$items.unitPrice", 0] }
+      },
+      discountType: {
+        $type: { $arrayElemAt: ["$items.discount", 0] }
+      },
+      paymentAmountType: { $type: "$payment.amount" }
+    }
+  }
+])
+
+// Optional cleanup.
+// db.price_examples.drop()
+// db.orders.drop()

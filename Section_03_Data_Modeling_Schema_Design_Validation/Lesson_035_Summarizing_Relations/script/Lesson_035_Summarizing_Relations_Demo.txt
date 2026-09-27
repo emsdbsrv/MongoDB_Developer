@@ -1,0 +1,131 @@
+// Summarizing Relations
+// Topic-specific mongosh demo
+// Single example person: Avi
+// Location: Bangalore, RR Nagar
+//
+// Purpose:
+// Use one consistent example to summarize relationship choices.
+// This script demonstrates:
+// 1:1 embedded, 1:N embedded/reference thinking, and N:N embedded thinking.
+
+// 1. Start clean
+use lesson035_demo
+db.dropDatabase()
+
+// 2. Avi and a one-to-one embedded profile
+db.people.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar",
+  profile: {
+    email: "avi@example.com",
+    preference: "developer"
+  }
+})
+
+// Read Avi with the embedded profile.
+db.people.findOne({
+  name: "Avi"
+})
+
+// 3. Avi and a one-to-many embedded relationship
+// A bounded list such as a small phone list can be embedded.
+db.people.updateOne(
+  { name: "Avi" },
+  {
+    $set: {
+      phones: [
+        "9876543210",
+        "9123456780"
+      ]
+    }
+  }
+)
+
+// Read the embedded one-to-many data.
+db.people.findOne(
+  { name: "Avi" },
+  {
+    _id: 0,
+    name: 1,
+    location: 1,
+    phones: 1
+  }
+)
+
+// 4. Create a separate order collection.
+// This demonstrates a 1:N shape where child records can be managed independently.
+db.orders.insertMany([
+  {
+    orderId: "O1001",
+    customer: "Avi",
+    total: 75000
+  },
+  {
+    orderId: "O1002",
+    customer: "Avi",
+    total: 2000
+  }
+])
+
+// Read Avi's orders separately.
+db.orders.find({
+  customer: "Avi"
+})
+
+// 5. Create a many-to-many example using embedded technology values.
+// The same technology can appear in multiple project documents.
+db.projects.insertMany([
+  {
+    name: "MongoDB API",
+    owner: "Avi",
+    technologies: [
+      "MongoDB",
+      "Java"
+    ]
+  },
+  {
+    name: "Migration Tool",
+    owner: "Avi",
+    technologies: [
+      "MongoDB",
+      "Java"
+    ]
+  }
+])
+
+// Find Avi's projects using MongoDB.
+db.projects.find({
+  owner: "Avi",
+  technologies: "MongoDB"
+})
+
+// 6. Summarize the observed shapes.
+
+// 1:1 embedded
+db.people.findOne({
+  name: "Avi"
+})
+
+// 1:N embedded
+db.people.findOne(
+  { name: "Avi" },
+  { _id: 0, name: 1, phones: 1 }
+)
+
+// 1:N referenced
+db.orders.find({
+  customer: "Avi"
+})
+
+// N:N embedded
+db.projects.find({
+  owner: "Avi",
+  technologies: "MongoDB"
+})
+
+// 7. Final training observation
+print("Avi: 1:1 profile is embedded.")
+print("Avi: 1:N phone list is embedded because it is bounded and co-read.")
+print("Avi: 1:N orders are separated to support independent child records.")
+print("Avi: N:N project technology values are repeated as an embedded example.")
+print("Relationship shape should follow access, growth, ownership, and reuse.")

@@ -1,0 +1,77 @@
+use lesson042_int_width
+
+// Clean setup
+db.dropDatabase()
+
+// Order Management example.
+// Bounded whole-number fields are shown as Int32.
+// A long-lived counter is shown as Int64.
+db.orders.insertOne({
+  orderId: "ORD-4201",
+  items: [
+    {
+      productId: "P100",
+      productName: "Laptop",
+      quantity: NumberInt(2)
+    },
+    {
+      productId: "P200",
+      productName: "Wireless Mouse",
+      quantity: NumberInt(5)
+    }
+  ],
+  packageCount: NumberInt(3),
+  eventSequence: NumberLong(2500000000)
+})
+
+// Read the stored order.
+db.orders.findOne({ orderId: "ORD-4201" })
+
+// Inspect BSON type for each integer field.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      quantityTypes: {
+        $map: {
+          input: "$items",
+          as: "i",
+          in: {
+            productId: "$$i.productId",
+            quantityType: { $type: "$$i.quantity" }
+          }
+        }
+      },
+      packageCountType: { $type: "$packageCount" },
+      eventSequenceType: { $type: "$eventSequence" }
+    }
+  }
+])
+
+// Explicit constructors in mongosh.
+NumberInt(10)
+NumberLong(10)
+
+// Small comparison collection.
+db.integer_examples.drop()
+
+db.integer_examples.insertMany([
+  { label: "bounded-quantity", value: NumberInt(10) },
+  { label: "large-sequence", value: NumberLong(2500000000) }
+])
+
+db.integer_examples.aggregate([
+  {
+    $project: {
+      _id: 0,
+      label: 1,
+      value: 1,
+      bsonType: { $type: "$value" }
+    }
+  }
+])
+
+// Optional cleanup.
+// db.integer_examples.drop()
+// db.orders.drop()

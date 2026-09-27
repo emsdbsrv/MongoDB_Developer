@@ -1,0 +1,104 @@
+// Planning the Example Exercise
+// Topic-specific mongosh demo
+// Single example person: Avi
+// Location: Bangalore, RR Nagar
+//
+// This is a PLANNING demo.
+// It does not implement collections or application logic.
+// It captures requirements, access patterns, relationships, and candidate shapes.
+
+use lesson036_planning
+
+const plan = {
+  person: "Avi",
+  location: "Bangalore, RR Nagar",
+
+  requirements: [
+    "Store Avi's profile information",
+    "Store Avi's small phone list",
+    "Track the projects Avi works on",
+    "Record technologies used by those projects"
+  ],
+
+  accessPatterns: [
+    "Find Avi",
+    "Read Avi with profile information",
+    "Read Avi with the phone list",
+    "List Avi's projects",
+    "Find Avi's projects by technology",
+    "Read technology details when needed"
+  ],
+
+  relationships: [
+    {
+      from: "Avi",
+      to: "Profile",
+      type: "one-to-one"
+    },
+    {
+      from: "Avi",
+      to: "Phones",
+      type: "one-to-many"
+    },
+    {
+      from: "Avi",
+      to: "Projects",
+      type: "one-to-many"
+    },
+    {
+      from: "Projects",
+      to: "Technologies",
+      type: "many-to-many"
+    }
+  ],
+
+  candidateShapes: {
+    profile: "embed",
+    phones: "embed",
+    projects: "reference",
+    technologies: "reference"
+  }
+}
+
+// 1. Print the complete planning artifact.
+printjson(plan)
+
+// 2. Print each planning area separately for review.
+print("=== REQUIREMENTS ===")
+plan.requirements.forEach((item, index) => {
+  print(`${index + 1}. ${item}`)
+})
+
+print("=== ACCESS PATTERNS ===")
+plan.accessPatterns.forEach((item, index) => {
+  print(`${index + 1}. ${item}`)
+})
+
+print("=== RELATIONSHIPS ===")
+plan.relationships.forEach((item, index) => {
+  printjson(item)
+})
+
+print("=== CANDIDATE SHAPES ===")
+printjson(plan.candidateShapes)
+
+// 3. Planning review checks.
+print("=== REVIEW CHECKS ===")
+
+print(
+  "Every requirement mapped? " +
+  (plan.requirements.length > 0 && plan.accessPatterns.length > 0)
+)
+
+print(
+  "Relationships identified? " +
+  (plan.relationships.length === 4)
+)
+
+print(
+  "Candidate shapes documented? " +
+  (Object.keys(plan.candidateShapes).length === 4)
+)
+
+// End of planning demo.
+print("Planning artifact ready for review before implementation.")

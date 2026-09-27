@@ -1,0 +1,110 @@
+// Lesson 025 — Structuring Documents
+// Topic-specific mongosh demo
+// Focus: structuring fields, nesting related data, and choosing document shape.
+
+// 1. Start clean
+use Lesson025_StructuringDocuments
+db.dropDatabase()
+
+// 2. Simple flat document
+db.customers.insertOne({
+  name: "Arun",
+  email: "arun@example.com",
+  city: "Chennai"
+})
+
+// 3. Structure related address fields into an embedded document
+db.customers.insertOne({
+  name: "Priya",
+  email: "priya@example.com",
+  address: {
+    street: "MG Road",
+    city: "Chennai",
+    state: "Tamil Nadu",
+    country: "India"
+  }
+})
+
+// 4. Structure repeated related values as an array
+db.customers.insertOne({
+  name: "Kumar",
+  email: "kumar@example.com",
+  phones: [
+    "9876543210",
+    "9123456780"
+  ]
+})
+
+// 5. Structure repeated objects as an array of documents
+db.customers.insertOne({
+  name: "Meena",
+  email: "meena@example.com",
+  addresses: [
+    {
+      type: "home",
+      city: "Chennai"
+    },
+    {
+      type: "office",
+      city: "Bengaluru"
+    }
+  ]
+})
+
+// 6. Combine nested documents and arrays
+db.customers.insertOne({
+  name: "Ravi",
+  profile: {
+    email: "ravi@example.com",
+    location: {
+      city: "Chennai",
+      country: "India"
+    }
+  },
+  skills: [
+    "MongoDB",
+    "Java",
+    "Spring Boot"
+  ]
+})
+
+// 7. Inspect the structured documents
+db.customers.find().pretty()
+
+// 8. Read a nested field
+db.customers.find({
+  "profile.location.city": "Chennai"
+})
+
+// 9. Read an embedded field
+db.customers.find({
+  "address.city": "Chennai"
+})
+
+// 10. Read values from an array
+db.customers.find({
+  skills: "MongoDB"
+})
+
+// 11. Read an object inside an array
+db.customers.find({
+  "addresses.type": "office"
+})
+
+// 12. Project only the structured parts needed by the application
+db.customers.find(
+  {},
+  {
+    name: 1,
+    "profile.location": 1,
+    skills: 1,
+    _id: 0
+  }
+)
+
+// 13. Show the final document shape
+db.customers.findOne({
+  name: "Ravi"
+})
+
+// End of Lesson 025 demo

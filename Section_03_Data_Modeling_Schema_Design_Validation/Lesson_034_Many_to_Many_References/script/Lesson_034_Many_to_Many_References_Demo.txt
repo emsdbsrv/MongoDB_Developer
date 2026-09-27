@@ -1,0 +1,94 @@
+// Many-to-Many — References
+// Topic-specific mongosh demo
+// Example person used throughout: Avi
+// Location: Bangalore, RR Nagar
+
+use lesson034_demo
+db.dropDatabase()
+
+// Create the parent person and capture the identifier.
+const aviId = db.people.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar"
+}).insertedId
+
+// Create reusable technology entities.
+const mongoId = db.technologies.insertOne({
+  name: "MongoDB"
+}).insertedId
+
+const javaId = db.technologies.insertOne({
+  name: "Java"
+}).insertedId
+
+// Create a project that references Avi and two technologies.
+const project1Id = db.projects.insertOne({
+  name: "MongoDB API",
+  ownerId: aviId,
+  technologyIds: [mongoId, javaId]
+}).insertedId
+
+// Create another project for Avi using some of the same technology entities.
+const project2Id = db.projects.insertOne({
+  name: "Migration Tool",
+  ownerId: aviId,
+  technologyIds: [javaId]
+}).insertedId
+
+// View Avi.
+db.people.findOne({
+  _id: aviId
+})
+
+// View both projects that reference Avi.
+db.projects.find({
+  ownerId: aviId
+}).pretty()
+
+// Read the technology entities referenced by the first project.
+const project1 = db.projects.findOne({
+  _id: project1Id
+})
+
+db.technologies.find({
+  _id: { $in: project1.technologyIds }
+}).pretty()
+
+// Read all technology entities referenced by Avi's projects.
+const aviProjects = db.projects.find({
+  ownerId: aviId
+}).toArray()
+
+const aviTechnologyIds = [
+  ...new Set(
+    aviProjects.flatMap(project => project.technologyIds.map(id => id.toString()))
+  )
+].map(id => ObjectId(id))
+
+db.technologies.find({
+  _id: { $in: aviTechnologyIds }
+}).pretty()
+
+// Update one shared technology entity.
+db.technologies.updateOne(
+  { _id: mongoId },
+  { $set: { name: "MongoDB Database" } }
+)
+
+// Verify the same technology identifier is still referenced.
+db.projects.find({
+  technologyIds: mongoId
+}).pretty()
+
+// Final view of the reference graph.
+db.people.findOne({
+  _id: aviId
+})
+
+db.projects.find({
+  ownerId: aviId
+}).pretty()
+
+db.technologies.find({
+  _id: { $in: aviTechnologyIds }
+}).pretty()

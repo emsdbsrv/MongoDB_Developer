@@ -1,0 +1,109 @@
+// Many-to-Many — Embedded
+// Topic-specific mongosh demo
+// Example person used throughout: Avi
+// Location: Bangalore, RR Nagar
+
+use lesson033_demo
+db.dropDatabase()
+
+// Create Avi with multiple projects.
+// Each project embeds multiple technologies.
+// The same technology can appear in multiple projects.
+db.people.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar",
+  projects: [
+    {
+      name: "MongoDB API",
+      technologies: [
+        "MongoDB",
+        "Java"
+      ]
+    },
+    {
+      name: "Analytics App",
+      technologies: [
+        "MongoDB",
+        "Python"
+      ]
+    },
+    {
+      name: "Migration Tool",
+      technologies: [
+        "Java",
+        "MongoDB"
+      ]
+    }
+  ]
+})
+
+// View Avi's complete embedded model.
+db.people.findOne({
+  name: "Avi"
+}).pretty()
+
+// Find Avi because MongoDB appears in the embedded technology arrays.
+db.people.findOne({
+  name: "Avi",
+  "projects.technologies": "MongoDB"
+})
+
+// Return only Avi's project array.
+db.people.findOne(
+  { name: "Avi" },
+  {
+    _id: 0,
+    name: 1,
+    location: 1,
+    projects: 1
+  }
+)
+
+// Find Avi's project named Analytics App.
+db.people.findOne(
+  {
+    name: "Avi",
+    "projects.name": "Analytics App"
+  },
+  {
+    _id: 0,
+    "projects.$": 1
+  }
+)
+
+// Add another technology to Avi's Analytics App.
+// $addToSet prevents the same value being added twice.
+db.people.updateOne(
+  {
+    name: "Avi",
+    "projects.name": "Analytics App"
+  },
+  {
+    $addToSet: {
+      "projects.$.technologies": "MongoDB Atlas"
+    }
+  }
+)
+
+// Verify the updated Analytics App.
+db.people.findOne(
+  {
+    name: "Avi",
+    "projects.name": "Analytics App"
+  },
+  {
+    _id: 0,
+    "projects.$": 1
+  }
+)
+
+// Query again by the repeated MongoDB technology value.
+db.people.findOne({
+  name: "Avi",
+  "projects.technologies": "MongoDB"
+})
+
+// Final document.
+db.people.findOne({
+  name: "Avi"
+}).pretty()

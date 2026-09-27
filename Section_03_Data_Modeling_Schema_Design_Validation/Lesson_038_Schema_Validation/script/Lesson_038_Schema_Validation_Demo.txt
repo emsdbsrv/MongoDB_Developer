@@ -1,0 +1,100 @@
+// Schema Validation
+// Topic-specific mongosh demo
+// Single example person: Avi
+// Location: Bangalore, RR Nagar
+//
+// Focus: define a JSON Schema validator for Avi's intended document shape.
+// The demo uses a validation contract, then tests valid and invalid documents.
+
+use lesson038_demo
+db.dropDatabase()
+
+// 1. Create the people collection with schema validation.
+db.createCollection("people", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: [
+        "name",
+        "email"
+      ],
+      properties: {
+        name: {
+          bsonType: "string"
+        },
+        email: {
+          bsonType: "string"
+        },
+        location: {
+          bsonType: "string"
+        },
+        phones: {
+          bsonType: "array",
+          items: {
+            bsonType: "string"
+          }
+        }
+      }
+    }
+  }
+})
+
+// 2. Inspect the collection validator.
+db.getCollectionInfos({
+  name: "people"
+})
+
+// 3. Insert a valid Avi document.
+db.people.insertOne({
+  name: "Avi",
+  email: "avi@example.com",
+  location: "Bangalore, RR Nagar",
+  phones: [
+    "9876543210",
+    "9123456780"
+  ]
+})
+
+// 4. Verify the valid document.
+db.people.findOne({
+  name: "Avi"
+})
+
+// 5. Try an invalid document.
+// email is a number, but the schema requires a string.
+try {
+  db.people.insertOne({
+    name: "Avi",
+    email: 12345,
+    location: "Bangalore, RR Nagar"
+  })
+} catch (e) {
+  print("Expected validation failure:")
+  print(e)
+}
+
+// 6. Try another invalid document.
+// phones must be an array, not a string.
+try {
+  db.people.insertOne({
+    name: "Avi",
+    email: "avi@example.com",
+    location: "Bangalore, RR Nagar",
+    phones: "9876543210"
+  })
+} catch (e) {
+  print("Expected validation failure:")
+  print(e)
+}
+
+// 7. Show the valid Avi document remains.
+db.people.findOne({
+  name: "Avi"
+})
+
+// 8. Final training observation.
+print("Avi is accepted when required fields and BSON types match.")
+print("Avi is rejected when declared BSON types are violated.")
+print("Schema validation turns the planned document shape into a collection-level guardrail.")
+
+// End of demo

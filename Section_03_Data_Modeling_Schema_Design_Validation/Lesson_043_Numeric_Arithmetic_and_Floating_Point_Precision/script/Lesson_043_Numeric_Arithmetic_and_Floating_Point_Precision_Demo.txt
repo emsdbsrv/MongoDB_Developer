@@ -1,0 +1,122 @@
+use lesson043_numeric_arithmetic
+
+// Clean setup
+db.dropDatabase()
+
+// ------------------------------------------------------------
+// JavaScript / mongosh floating-point behavior
+// ------------------------------------------------------------
+0.1 + 0.2
+0.1 + 0.7
+0.3 - 0.2
+
+// Exact equality can surprise you.
+0.1 + 0.2 === 0.3
+
+const floatingResult = 0.1 + 0.2
+floatingResult
+
+// ------------------------------------------------------------
+// Order Management arithmetic
+// ------------------------------------------------------------
+db.orders.insertOne({
+  orderId: "ORD-4301",
+  items: [
+    {
+      productId: "P100",
+      productName: "Laptop",
+      quantity: 1,
+      unitPrice: 75000,
+      discount: 5000
+    },
+    {
+      productId: "P200",
+      productName: "Wireless Mouse",
+      quantity: 2,
+      unitPrice: 1500.5,
+      discount: 100
+    }
+  ]
+})
+
+// Direct arithmetic on representative order values.
+const order = db.orders.findOne({ orderId: "ORD-4301" })
+
+order.items[0].quantity * order.items[0].unitPrice
+order.items[1].quantity * order.items[1].unitPrice
+
+// ------------------------------------------------------------
+// MongoDB aggregation arithmetic
+// ------------------------------------------------------------
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      lineTotals: {
+        $map: {
+          input: "$items",
+          as: "i",
+          in: {
+            productId: "$$i.productId",
+            lineTotal: {
+              $multiply: ["$$i.quantity", "$$i.unitPrice"]
+            }
+          }
+        }
+      }
+    }
+  }
+])
+
+// Calculate line total after discount.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      discountedLineTotals: {
+        $map: {
+          input: "$items",
+          as: "i",
+          in: {
+            productId: "$$i.productId",
+            discountedLineTotal: {
+              $subtract: [
+                { $multiply: ["$$i.quantity", "$$i.unitPrice"] },
+                "$$i.discount"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+])
+
+// Sum the discounted line totals.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      subtotal: {
+        $sum: {
+          $map: {
+            input: "$items",
+            as: "i",
+            in: {
+              $subtract: [
+                { $multiply: ["$$i.quantity", "$$i.unitPrice"] },
+                "$$i.discount"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+])
+
+// Optional cleanup.
+// db.orders.drop()

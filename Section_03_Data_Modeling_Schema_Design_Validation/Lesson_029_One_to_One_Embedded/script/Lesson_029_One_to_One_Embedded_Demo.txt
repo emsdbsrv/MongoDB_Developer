@@ -1,0 +1,64 @@
+// One-to-One — Embedded
+// Topic-specific mongosh demo
+// Example person: Avi
+// Location: Bangalore, RR Nagar
+
+use OneToOneEmbeddedDemo
+db.dropDatabase()
+
+// Create Avi with one embedded home address.
+db.customers.insertOne({
+  name: "Avi",
+  city: "Bangalore",
+  homeAddress: {
+    area: "RR Nagar",
+    city: "Bangalore",
+    country: "India"
+  }
+})
+
+// Read Avi and the embedded object together.
+db.customers.findOne({
+  name: "Avi"
+})
+
+// Read only the fields needed by the application.
+db.customers.findOne(
+  { name: "Avi" },
+  {
+    _id: 0,
+    name: 1,
+    city: 1,
+    homeAddress: 1
+  }
+)
+
+// Access the embedded field directly.
+db.customers.findOne({
+  "homeAddress.area": "RR Nagar"
+})
+
+// Access a nested field inside the one-to-one object.
+db.customers.findOne({
+  "homeAddress.city": "Bangalore"
+})
+
+// Update the embedded object as part of Avi's document.
+db.customers.updateOne(
+  { name: "Avi" },
+  {
+    $set: {
+      "homeAddress.country": "India"
+    }
+  }
+)
+
+// Verify the final one-to-one structure.
+db.customers.findOne({
+  name: "Avi"
+})
+
+// Topic checkpoint.
+print("Avi has one embedded homeAddress object.")
+print("The related object is stored inside the parent customer document.")
+print("The parent and one-to-one data can be read and updated through the same document.")

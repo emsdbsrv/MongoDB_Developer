@@ -1,0 +1,130 @@
+// Implementing the Example Exercise
+// Topic-specific mongosh demo
+// Single example person: Avi
+// Location: Bangalore, RR Nagar
+//
+// This script implements the model planned in the previous exercise.
+// It focuses on implementation, relationships, and the planned access patterns.
+
+use lesson037_demo
+db.dropDatabase()
+
+// 1. Implement Avi's parent document.
+// Profile and the bounded phone list are embedded.
+const aviId = db.people.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar",
+  profile: {
+    email: "avi@example.com",
+    preference: "developer"
+  },
+  phones: [
+    "9876543210",
+    "9123456780"
+  ]
+}).insertedId
+
+// 2. Verify the parent document.
+db.people.findOne({
+  _id: aviId
+})
+
+// 3. Implement reusable technology documents.
+const mongoId = db.technologies.insertOne({
+  name: "MongoDB"
+}).insertedId
+
+const javaId = db.technologies.insertOne({
+  name: "Java"
+}).insertedId
+
+// 4. Implement the first project.
+// ownerId references Avi.
+// technologyIds reference reusable technology documents.
+const projectId = db.projects.insertOne({
+  name: "MongoDB API",
+  ownerId: aviId,
+  technologyIds: [
+    mongoId,
+    javaId
+  ]
+}).insertedId
+
+// 5. Implement another project for Avi.
+// Reuse the existing Java technology identifier.
+db.projects.insertOne({
+  name: "Developer Automation",
+  ownerId: aviId,
+  technologyIds: [
+    javaId
+  ]
+})
+
+// 6. Read Avi using the planned access pattern.
+db.people.findOne({
+  name: "Avi"
+})
+
+// 7. Read Avi's projects using the parent identifier.
+db.projects.find({
+  ownerId: aviId
+}).sort({
+  name: 1
+})
+
+// 8. Read the first project's referenced technologies.
+const project = db.projects.findOne({
+  _id: projectId
+})
+
+db.technologies.find({
+  _id: {
+    $in: project.technologyIds
+  }
+}).sort({
+  name: 1
+})
+
+// 9. Implement a normal document update.
+db.projects.updateOne(
+  {
+    _id: projectId
+  },
+  {
+    $set: {
+      status: "Active"
+    }
+  }
+)
+
+// 10. Verify the final project.
+db.projects.findOne({
+  _id: projectId
+})
+
+// 11. Final implementation checks.
+print("Avi exists:")
+printjson(
+  db.people.findOne({
+    _id: aviId
+  })
+)
+
+print("Avi project count:")
+print(
+  db.projects.countDocuments({
+    ownerId: aviId
+  })
+)
+
+print("Reusable technology count:")
+print(
+  db.technologies.countDocuments({
+    _id: {
+      $in: [mongoId, javaId]
+    }
+  })
+)
+
+// End of implementation exercise.
+print("Example exercise implemented and verified.")

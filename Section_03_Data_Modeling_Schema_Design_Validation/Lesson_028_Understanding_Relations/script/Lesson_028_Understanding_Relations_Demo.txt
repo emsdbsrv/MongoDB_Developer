@@ -1,0 +1,103 @@
+// Topic-specific mongosh demo
+// ONLY person used in examples: Avi
+// Avi: Bangalore, RR Nagar
+// Focus: 1:1, 1:N, N:M relationships and embed vs reference.
+
+// 1. Start clean
+db.dropDatabase()
+
+// 2. One-to-one relationship: Avi and a small profile
+// Embed because the profile is small and normally read with Avi.
+db.customers.insertOne({
+  customerId: "AVI-001",
+  name: "Avi",
+  profile: {
+    city: "Bangalore",
+    area: "RR Nagar"
+  }
+})
+
+// Inspect the embedded relationship
+db.customers.findOne({
+  customerId: "AVI-001"
+})
+
+// Read the embedded field
+db.customers.findOne(
+  { customerId: "AVI-001" },
+  { name: 1, "profile.city": 1, "profile.area": 1, _id: 0 }
+)
+
+// 3. One-to-many relationship: Avi and orders
+// Store orders separately because the set can grow independently.
+db.orders.insertMany([
+  {
+    orderId: 1001,
+    customerId: "AVI-001",
+    total: 2500
+  },
+  {
+    orderId: 1002,
+    customerId: "AVI-001",
+    total: 4200
+  },
+  {
+    orderId: 1003,
+    customerId: "AVI-001",
+    total: 1800
+  }
+])
+
+// Inspect Avi's many related orders
+db.orders.find({
+  customerId: "AVI-001"
+})
+
+// 4. Many-to-many relationship: Avi and reusable skills
+// Represent the relationship with skill identifiers.
+db.skills.insertMany([
+  { skillId: "SK-MONGO", name: "MongoDB" },
+  { skillId: "SK-JAVA", name: "Java" },
+  { skillId: "SK-SPRING", name: "Spring Boot" }
+])
+
+// Store the relationship on Avi using identifiers.
+db.customers.updateOne(
+  { customerId: "AVI-001" },
+  {
+    $set: {
+      skillIds: ["SK-MONGO", "SK-JAVA", "SK-SPRING"]
+    }
+  }
+)
+
+// Inspect Avi's many-to-many identifiers
+db.customers.findOne(
+  { customerId: "AVI-001" },
+  { name: 1, skillIds: 1, _id: 0 }
+)
+
+// 5. Find the skill definitions referenced by Avi
+db.skills.find({
+  skillId: {
+    $in: ["SK-MONGO", "SK-JAVA", "SK-SPRING"]
+  }
+})
+
+// 6. Compare the three relationship representations
+print("1:1 -> Avi profile is embedded inside the customer document.")
+print("1:N -> Avi orders are stored separately with customerId: AVI-001.")
+print("N:M -> Avi skillIds reference reusable skill documents.")
+
+// 7. Final verification
+print("Customer:")
+db.customers.findOne({ customerId: "AVI-001" })
+
+print("Orders:")
+db.orders.find({ customerId: "AVI-001" }).toArray()
+
+print("Skills referenced by Avi:")
+db.skills.find({ skillId: { $in: ["SK-MONGO", "SK-JAVA", "SK-SPRING"] } }).toArray()
+
+print("Only Avi is used as the person example: Bangalore, RR Nagar.")
+

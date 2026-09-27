@@ -1,0 +1,97 @@
+// Lesson 027 — Deriving Data Structure from Requirements
+// Topic-specific mongosh demo
+// Focus: requirements -> access patterns -> document structure
+// No unrelated CRUD or schema-validation topics.
+
+// 1. Start clean
+use Lesson027_Requirements
+db.dropDatabase()
+
+// 2. Business requirement
+// A customer can have:
+// - name and email
+// - one primary address
+// - multiple orders
+//
+// Application access patterns:
+// - Find customer by email
+// - Show customer profile with address
+// - Show a customer's recent orders
+
+// 3. Derive an embedded customer profile from the requirement
+db.customers.insertOne({
+  name: "Arun",
+  email: "arun@example.com",
+  address: {
+    street: "MG Road",
+    city: "Chennai",
+    country: "India"
+  }
+})
+
+// 4. Derive an order document from the access pattern
+// Orders are kept separately because they can grow independently.
+db.orders.insertMany([
+  {
+    orderId: 1001,
+    customerEmail: "arun@example.com",
+    orderDate: ISODate("2026-09-20"),
+    total: 2500
+  },
+  {
+    orderId: 1002,
+    customerEmail: "arun@example.com",
+    orderDate: ISODate("2026-09-24"),
+    total: 4200
+  }
+])
+
+// 5. Access pattern: find customer by email
+db.customers.findOne({
+  email: "arun@example.com"
+})
+
+// 6. Access pattern: retrieve orders for that customer
+db.orders.find({
+  customerEmail: "arun@example.com"
+})
+
+// 7. Add a second requirement:
+// The application frequently displays shipping address with the customer.
+// Keep address embedded with the customer.
+db.customers.find(
+  { email: "arun@example.com" },
+  { name: 1, email: 1, address: 1, _id: 0 }
+)
+
+// 8. Add a relationship to orders using a reference-style identifier.
+// This demonstrates a separate collection for a growing one-to-many relationship.
+db.orders.updateMany(
+  { customerEmail: "arun@example.com" },
+  {
+    $set: {
+      customerId: "CUST-1001"
+    }
+  }
+)
+
+db.customers.updateOne(
+  { email: "arun@example.com" },
+  {
+    $set: {
+      customerId: "CUST-1001"
+    }
+  }
+)
+
+// 9. Verify the derived model
+db.customers.findOne()
+db.orders.find().pretty()
+
+// 10. Show the design decision
+print("Requirement: profile + address -> embed address with customer.")
+print("Requirement: many independently growing orders -> keep orders separate.")
+print("Access pattern drives document shape.")
+print("Document design should reflect how the application reads and writes data.")
+
+// End of Lesson 027 demo

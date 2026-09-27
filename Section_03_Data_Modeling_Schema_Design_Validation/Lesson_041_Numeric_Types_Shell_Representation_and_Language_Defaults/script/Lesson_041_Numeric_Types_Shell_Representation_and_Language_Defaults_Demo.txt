@@ -1,0 +1,114 @@
+// Clean setup
+use lesson041_numeric_types
+
+db.dropDatabase()
+
+// Create a small Order Management dataset.
+db.orders.insertOne({
+  orderId: "ORD-4101",
+  status: "CONFIRMED",
+  items: [
+    {
+      productId: "P100",
+      productName: "Laptop",
+      quantity: 1,
+      unitPrice: 75000,
+      discount: 5000
+    },
+    {
+      productId: "P200",
+      productName: "Wireless Mouse",
+      quantity: 2,
+      unitPrice: 1500.5,
+      discount: 100
+    }
+  ],
+  payment: {
+    method: "UPI",
+    status: "PAID",
+    amount: 72900
+  }
+})
+
+// See the stored order.
+db.orders.findOne({ orderId: "ORD-4101" })
+
+// ------------------------------------------------------------
+// mongosh / JavaScript runtime representation
+// ------------------------------------------------------------
+typeof 100
+typeof 99.5
+
+const whole = 100
+const fractional = 99.5
+
+typeof whole
+typeof fractional
+
+// Explicit shell numeric wrappers.
+// These are shown here only to make numeric intent visible.
+NumberInt(100)
+NumberLong(100)
+
+// ------------------------------------------------------------
+// Inspect BSON numeric types stored in the order
+// ------------------------------------------------------------
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderId: 1,
+      numericTypes: {
+        $map: {
+          input: "$items",
+          as: "i",
+          in: {
+            quantity: { $type: "$$i.quantity" },
+            unitPrice: { $type: "$$i.unitPrice" },
+            discount: { $type: "$$i.discount" }
+          }
+        }
+      },
+      paymentAmountType: { $type: "$payment.amount" }
+    }
+  }
+])
+
+// Inspect individual top-level fields directly.
+db.orders.aggregate([
+  {
+    $project: {
+      _id: 0,
+      orderIdType: { $type: "$orderId" },
+      statusType: { $type: "$status" },
+      paymentAmountType: { $type: "$payment.amount" }
+    }
+  }
+])
+
+// ------------------------------------------------------------
+// Optional comparison: plain literals vs explicit wrappers
+// ------------------------------------------------------------
+db.numeric_examples.drop()
+
+db.numeric_examples.insertMany([
+  { label: "plain-integer-literal", value: 100 },
+  { label: "plain-fractional-literal", value: 99.5 },
+  { label: "explicit-int32", value: NumberInt(100) },
+  { label: "explicit-int64", value: NumberLong(100) }
+])
+
+db.numeric_examples.aggregate([
+  {
+    $project: {
+      _id: 0,
+      label: 1,
+      value: 1,
+      bsonType: { $type: "$value" }
+    }
+  }
+])
+
+// Clean-up is optional.
+// db.numeric_examples.drop()
+// db.orders.drop()

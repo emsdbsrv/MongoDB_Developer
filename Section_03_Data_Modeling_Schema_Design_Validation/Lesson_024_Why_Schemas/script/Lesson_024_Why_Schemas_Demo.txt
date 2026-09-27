@@ -1,0 +1,96 @@
+// Lesson 024 — Why Schemas?
+// Topic-specific mongosh demo
+// Focus: flexible schema vs planned schema
+// No schema validation is used in this demo.
+
+// 1. Start clean
+use Lesson024_WhySchemas
+db.dropDatabase()
+
+// 2. MongoDB allows documents with different fields
+db.customers.insertOne({
+  name: "Arun",
+  email: "arun@example.com"
+})
+
+db.customers.insertOne({
+  name: "Priya",
+  email: "priya@example.com",
+  phone: "9876543210"
+})
+
+db.customers.insertOne({
+  name: "Kumar",
+  address: {
+    city: "Chennai",
+    country: "India"
+  }
+})
+
+// 3. View the different document shapes
+db.customers.find()
+
+// 4. See which fields are present across documents
+db.customers.aggregate([
+  {
+    $project: {
+      name: 1,
+      hasEmail: { $ne: [{ $type: "$email" }, "missing"] },
+      hasPhone: { $ne: [{ $type: "$phone" }, "missing"] },
+      hasAddress: { $ne: [{ $type: "$address" }, "missing"] }
+    }
+  }
+])
+
+// 5. Demonstrate a field-name inconsistency
+db.orders.insertOne({
+  orderId: 1001,
+  customerName: "Arun",
+  total: 2500
+})
+
+db.orders.insertOne({
+  orderId: 1002,
+  customer: "Priya",
+  totalAmount: 3500
+})
+
+// 6. Querying becomes inconsistent when the design is inconsistent
+db.orders.find({ customerName: "Arun" })
+db.orders.find({ customer: "Priya" })
+
+// 7. Create a planned schema shape
+db.plannedCustomers.insertOne({
+  name: "Arun",
+  email: "arun@example.com",
+  phone: null,
+  address: {
+    city: null,
+    country: null
+  }
+})
+
+db.plannedCustomers.insertOne({
+  name: "Priya",
+  email: "priya@example.com",
+  phone: "9876543210",
+  address: {
+    city: "Chennai",
+    country: "India"
+  }
+})
+
+// 8. Compare the planned, predictable structure
+db.plannedCustomers.find().pretty()
+
+// 9. Query the planned structure consistently
+db.plannedCustomers.find({
+  "address.city": "Chennai"
+})
+
+// 10. Show the lesson point
+print("Flexible schema allows different document shapes.")
+print("Application requirements still need a consistent data design.")
+print("Schema planning makes fields, names, nesting, and access patterns predictable.")
+
+// End of Lesson 024 demo

@@ -1,0 +1,92 @@
+// One-to-Many — Embedded
+// Topic-specific mongosh demo
+// Example person: Avi
+// Location: Bangalore, RR Nagar
+
+use lesson030_demo
+db.dropDatabase()
+
+// Create one parent document with many related orders embedded.
+db.people.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar",
+  orders: [
+    {
+      orderId: "O1001",
+      item: "Laptop",
+      quantity: 1,
+      total: 75000
+    },
+    {
+      orderId: "O1002",
+      item: "Mouse",
+      quantity: 2,
+      total: 2000
+    },
+    {
+      orderId: "O1003",
+      item: "Keyboard",
+      quantity: 1,
+      total: 3000
+    }
+  ]
+})
+
+// View the parent document with all embedded orders.
+db.people.findOne(
+  { name: "Avi" }
+)
+
+// Read only Avi's embedded orders.
+db.people.findOne(
+  { name: "Avi" },
+  {
+    _id: 0,
+    name: 1,
+    location: 1,
+    orders: 1
+  }
+)
+
+// Find Avi's document when one embedded order has a specific item.
+db.people.findOne({
+  name: "Avi",
+  "orders.item": "Laptop"
+})
+
+// Add another order to Avi's embedded array.
+db.people.updateOne(
+  { name: "Avi" },
+  {
+    $push: {
+      orders: {
+        orderId: "O1004",
+        item: "Monitor",
+        quantity: 1,
+        total: 18000
+      }
+    }
+  }
+)
+
+// Verify the updated embedded array.
+db.people.findOne(
+  { name: "Avi" },
+  {
+    _id: 0,
+    name: 1,
+    location: 1,
+    orders: 1
+  }
+)
+
+// Find Avi's document where an embedded order total is above a value.
+db.people.findOne({
+  name: "Avi",
+  "orders.total": { $gt: 10000 }
+})
+
+// Final view of Avi's one-to-many embedded model.
+db.people.findOne(
+  { name: "Avi" }
+)

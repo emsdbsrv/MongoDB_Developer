@@ -1,0 +1,82 @@
+// Lesson 023 — JSON vs BSON
+// Topic-specific mongosh demo
+// Focus: JSON representation vs BSON types used by MongoDB
+
+// 1. Start clean
+use Lesson023_JSON_BSON
+db.dropDatabase()
+
+// 2. A basic JSON-style document
+db.demo.insertOne({
+  name: "Laptop",
+  category: "Electronics",
+  price: 999.99
+})
+
+db.demo.findOne()
+
+// 3. Add BSON-specific types
+db.bsonDemo.insertOne({
+  productId: new ObjectId(),
+  name: "Laptop",
+  createdAt: new Date(),
+  quantity: NumberLong(100),
+  price: Decimal128("999.99")
+})
+
+db.bsonDemo.findOne()
+
+// 4. Check the BSON type of each field
+db.bsonDemo.aggregate([
+  {
+    $project: {
+      productIdType: { $type: "$productId" },
+      nameType: { $type: "$name" },
+      createdAtType: { $type: "$createdAt" },
+      quantityType: { $type: "$quantity" },
+      priceType: { $type: "$price" }
+    }
+  }
+])
+
+// 5. Compare normal JSON.stringify with Extended JSON
+const doc = db.bsonDemo.findOne()
+
+JSON.stringify(doc)
+
+EJSON.stringify(doc)
+
+EJSON.stringify(doc, null, 2)
+
+// 6. Observe the key difference:
+// JSON commonly represents values as text, numbers, booleans, arrays and objects.
+// BSON preserves additional native types such as ObjectId, Date, Long and Decimal128.
+
+// 7. Query a BSON-specific value
+db.bsonDemo.find({
+  price: Decimal128("999.99")
+})
+
+// 8. Query by BSON type
+db.bsonDemo.find({
+  quantity: { $type: "long" }
+})
+
+db.bsonDemo.find({
+  price: { $type: "decimal" }
+})
+
+db.bsonDemo.find({
+  createdAt: { $type: "date" }
+})
+
+db.bsonDemo.find({
+  productId: { $type: "objectId" }
+})
+
+// 9. Inspect the stored BSON document
+db.bsonDemo.findOne()
+
+// 10. Final topic verification
+print("JSON vs BSON demo completed.")
+print("Inspect the output for BSON-specific types and EJSON representation.")

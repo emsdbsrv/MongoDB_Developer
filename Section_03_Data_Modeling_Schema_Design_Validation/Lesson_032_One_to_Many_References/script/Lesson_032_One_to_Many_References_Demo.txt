@@ -1,0 +1,106 @@
+// One-to-Many — References
+// Topic-specific mongosh demo
+// Example person used throughout: Avi
+// Location: Bangalore, RR Nagar
+
+use lesson032_demo
+db.dropDatabase()
+
+// Create Avi in the parent collection.
+const aviId = db.customers.insertOne({
+  name: "Avi",
+  location: "Bangalore, RR Nagar"
+}).insertedId
+
+// Verify Avi and keep the generated _id.
+db.customers.findOne({
+  name: "Avi"
+})
+
+// Create many child documents in a separate collection.
+// Each child stores Avi's _id as customerId.
+db.orders.insertMany([
+  {
+    orderId: "O1001",
+    customerId: aviId,
+    item: "Laptop",
+    total: 75000
+  },
+  {
+    orderId: "O1002",
+    customerId: aviId,
+    item: "Mouse",
+    total: 2000
+  },
+  {
+    orderId: "O1003",
+    customerId: aviId,
+    item: "Keyboard",
+    total: 3000
+  }
+])
+
+// View Avi.
+db.customers.findOne({
+  name: "Avi"
+})
+
+// Find all orders that reference Avi.
+db.orders.find({
+  customerId: aviId
+}).sort({
+  orderId: 1
+})
+
+// Find one order through the reference.
+db.orders.findOne({
+  orderId: "O1002",
+  customerId: aviId
+})
+
+// Update one referenced child independently.
+db.orders.updateOne(
+  {
+    orderId: "O1002",
+    customerId: aviId
+  },
+  {
+    $set: {
+      total: 2500
+    }
+  }
+)
+
+// Verify the updated child.
+db.orders.findOne({
+  orderId: "O1002",
+  customerId: aviId
+})
+
+// Add another child independently.
+db.orders.insertOne({
+  orderId: "O1004",
+  customerId: aviId,
+  item: "Monitor",
+  total: 18000
+})
+
+// Verify all referenced orders for Avi.
+db.orders.find({
+  customerId: aviId
+}).sort({
+  orderId: 1
+})
+
+// Remove one child independently.
+db.orders.deleteOne({
+  orderId: "O1003",
+  customerId: aviId
+})
+
+// Final view of Avi's referenced orders.
+db.orders.find({
+  customerId: aviId
+}).sort({
+  orderId: 1
+})
