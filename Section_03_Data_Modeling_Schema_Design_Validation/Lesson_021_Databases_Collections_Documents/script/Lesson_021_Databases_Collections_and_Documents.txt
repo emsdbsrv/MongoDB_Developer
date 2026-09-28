@@ -1,0 +1,54 @@
+# MongoDB — Databases, Collections and Documents
+
+# Purpose
+# Build the basic hierarchy used by an Order Management application.
+
+use orderdb
+
+// Inspect the current database
+db.getName()
+
+// Create the core collections
+db.createCollection("orders")
+db.createCollection("customers")
+db.createCollection("products")
+
+// List collections
+show collections
+
+// Insert one customer document
+db.customers.insertOne({
+  customerId: "CUST-001",
+  segment: "Business",
+  contact: { city: "Chennai" }
+})
+
+// Insert one order document
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  customerId: "CUST-001",
+  orderDate: ISODate("2026-09-15T10:30:00Z"),
+  status: "PLACED",
+  shippingAddress: {
+    city: "Chennai",
+    postalCode: "600001"
+  },
+  items: [
+    { sku: "KB-101", qty: 2, price: 1499.00 }
+  ],
+  payment: {
+    method: "CARD",
+    status: "AUTHORIZED"
+  }
+})
+
+// Find the order document
+db.orders.findOne({ orderId: "ORD-1001" })
+
+// Show all order documents
+db.orders.find().pretty()
+
+// Show the collection name directly
+db.getCollectionNames()
+
+// Practice: insert a second order, then run the find() again.
