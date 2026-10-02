@@ -1,103 +1,101 @@
-// Topic-specific mongosh demo
-// ONLY person used in examples: Avi
-// Avi: Bangalore, RR Nagar
-// Focus: 1:1, 1:N, N:M relationships and embed vs reference.
+MongoDB hands-on demo — Understanding Relations
 
-// 1. Start clean
-db.dropDatabase()
+Purpose
+-------
+See how one-to-one, one-to-many, and many-to-many relationships can be represented in an Order Management model.
 
-// 2. One-to-one relationship: Avi and a small profile
-// Embed because the profile is small and normally read with Avi.
-db.customers.insertOne({
-  customerId: "AVI-001",
-  name: "Avi",
-  profile: {
-    city: "Bangalore",
-    area: "RR Nagar"
-  }
-})
+Prerequisite
+------------
+Run from a machine where mongosh can connect to MongoDB.
 
-// Inspect the embedded relationship
-db.customers.findOne({
-  customerId: "AVI-001"
-})
+1) Start mongosh
+----------------
+$ mongosh
 
-// Read the embedded field
-db.customers.findOne(
-  { customerId: "AVI-001" },
-  { name: 1, "profile.city": 1, "profile.area": 1, _id: 0 }
-)
+2) Use a clean demo database
+----------------------------
+> use orderdb_relations_demo
+> db.dropDatabase()
 
-// 3. One-to-many relationship: Avi and orders
-// Store orders separately because the set can grow independently.
-db.orders.insertMany([
-  {
-    orderId: 1001,
-    customerId: "AVI-001",
-    total: 2500
-  },
-  {
-    orderId: 1002,
-    customerId: "AVI-001",
-    total: 4200
-  },
-  {
-    orderId: 1003,
-    customerId: "AVI-001",
-    total: 1800
-  }
-])
-
-// Inspect Avi's many related orders
-db.orders.find({
-  customerId: "AVI-001"
-})
-
-// 4. Many-to-many relationship: Avi and reusable skills
-// Represent the relationship with skill identifiers.
-db.skills.insertMany([
-  { skillId: "SK-MONGO", name: "MongoDB" },
-  { skillId: "SK-JAVA", name: "Java" },
-  { skillId: "SK-SPRING", name: "Spring Boot" }
-])
-
-// Store the relationship on Avi using identifiers.
-db.customers.updateOne(
-  { customerId: "AVI-001" },
-  {
-    $set: {
-      skillIds: ["SK-MONGO", "SK-JAVA", "SK-SPRING"]
+3) Insert a customer with an embedded shipping address (1:1)
+--------------------------------------------------------------
+> db.customers.insertOne({
+    customerId: "CUST-1001",
+    name: "Acme Corp",
+    email: "contact@acme.com",
+    shippingAddress: {
+        city: "Mumbai",
+        country: "India"
     }
-  }
-)
-
-// Inspect Avi's many-to-many identifiers
-db.customers.findOne(
-  { customerId: "AVI-001" },
-  { name: 1, skillIds: 1, _id: 0 }
-)
-
-// 5. Find the skill definitions referenced by Avi
-db.skills.find({
-  skillId: {
-    $in: ["SK-MONGO", "SK-JAVA", "SK-SPRING"]
-  }
 })
 
-// 6. Compare the three relationship representations
-print("1:1 -> Avi profile is embedded inside the customer document.")
-print("1:N -> Avi orders are stored separately with customerId: AVI-001.")
-print("N:M -> Avi skillIds reference reusable skill documents.")
+4) Insert products (shared catalog side of N:M)
+-------------------------------------------------
+> db.products.insertMany([
+    { productId: "P100", name: "Laptop", category: "Electronics" },
+    { productId: "P200", name: "Mouse", category: "Accessories" },
+    { productId: "P300", name: "Keyboard", category: "Accessories" }
+])
 
-// 7. Final verification
-print("Customer:")
-db.customers.findOne({ customerId: "AVI-001" })
+5) Insert orders that reference the customer and product ids
+-------------------------------------------------------------
+> db.orders.insertMany([
+    {
+        orderId: "ORD-1001",
+        customerId: "CUST-1001",
+        status: "CONFIRMED",
+        items: [
+            { productId: "P100", quantity: 1 },
+            { productId: "P200", quantity: 2 }
+        ]
+    },
+    {
+        orderId: "ORD-1002",
+        customerId: "CUST-1001",
+        status: "SHIPPED",
+        items: [
+            { productId: "P100", quantity: 1 },
+            { productId: "P300", quantity: 1 }
+        ]
+    }
+])
 
-print("Orders:")
-db.orders.find({ customerId: "AVI-001" }).toArray()
+6) Inspect the parent document and its embedded 1:1 relation
+--------------------------------------------------------------
+> db.customers.findOne({ customerId: "CUST-1001" })
 
-print("Skills referenced by Avi:")
-db.skills.find({ skillId: { $in: ["SK-MONGO", "SK-JAVA", "SK-SPRING"] } }).toArray()
+7) Find all orders for the customer (1:N reference)
+-----------------------------------------------------
+> db.orders.find({ customerId: "CUST-1001" }).pretty()
 
-print("Only Avi is used as the person example: Bangalore, RR Nagar.")
+8) Find orders that contain a specific product id (N:M)
+--------------------------------------------------------
+> db.orders.find({ "items.productId": "P100" }).pretty()
 
+9) Inspect only the embedded address
+--------------------------------------
+> db.customers.findOne(
+    { customerId: "CUST-1001" },
+    { _id: 0, customerId: 1, shippingAddress: 1 }
+)
+
+10) Relationship map to observe
+-------------------------------
+Customer 1:1 Address      -> address is embedded
+Customer 1:N Orders       -> orders are separate and use customerId
+Orders   N:M Products     -> order items carry productId references
+
+11) Practice
+------------
+Create a second customer and give that customer two orders. Then insert a fourth product and add its productId to one order's items array.
+
+What to observe
+---------------
+• Cardinality describes how many records participate in the relation.
+• Embedded data stays inside the parent document.
+• Referenced data lives separately and is connected through identifiers.
+• Access patterns and growth help determine which representation is appropriate.
+
+Cleanup (optional)
+------------------
+> db.dropDatabase()

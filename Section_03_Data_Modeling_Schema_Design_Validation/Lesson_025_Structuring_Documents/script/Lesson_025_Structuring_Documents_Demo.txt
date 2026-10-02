@@ -1,110 +1,86 @@
-// Lesson 025 — Structuring Documents
-// Topic-specific mongosh demo
-// Focus: structuring fields, nesting related data, and choosing document shape.
+MongoDB Developer — Structuring Documents
 
-// 1. Start clean
-use Lesson025_StructuringDocuments
-db.dropDatabase()
+Purpose
+-------
+Practice structuring a MongoDB order document around a real-world business object.
+This demo focuses on document shape: top-level fields, nested objects, arrays of embedded documents, and readable field names.
 
-// 2. Simple flat document
-db.customers.insertOne({
-  name: "Arun",
-  email: "arun@example.com",
-  city: "Chennai"
-})
+Prerequisite
+------------
+Run from a machine where mongosh can connect to your MongoDB instance.
 
-// 3. Structure related address fields into an embedded document
-db.customers.insertOne({
-  name: "Priya",
-  email: "priya@example.com",
-  address: {
-    street: "MG Road",
-    city: "Chennai",
-    state: "Tamil Nadu",
-    country: "India"
-  }
-})
+1) Switch to a practice database
+---------------------------------
+use order_modeling
 
-// 4. Structure repeated related values as an array
-db.customers.insertOne({
-  name: "Kumar",
-  email: "kumar@example.com",
-  phones: [
-    "9876543210",
-    "9123456780"
-  ]
-})
+2) Reset the example collection
+--------------------------------
+db.orders.drop()
 
-// 5. Structure repeated objects as an array of documents
-db.customers.insertOne({
-  name: "Meena",
-  email: "meena@example.com",
-  addresses: [
-    {
-      type: "home",
-      city: "Chennai"
-    },
-    {
-      type: "office",
-      city: "Bengaluru"
-    }
-  ]
-})
-
-// 6. Combine nested documents and arrays
-db.customers.insertOne({
-  name: "Ravi",
-  profile: {
-    email: "ravi@example.com",
-    location: {
-      city: "Chennai",
-      country: "India"
-    }
+3) Insert one structured order
+------------------------------
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  orderDate: new Date(),
+  status: "CONFIRMED",
+  customer: {
+    customerId: "CUST-001",
+    segment: "Enterprise"
   },
-  skills: [
-    "MongoDB",
-    "Java",
-    "Spring Boot"
-  ]
-})
-
-// 7. Inspect the structured documents
-db.customers.find().pretty()
-
-// 8. Read a nested field
-db.customers.find({
-  "profile.location.city": "Chennai"
-})
-
-// 9. Read an embedded field
-db.customers.find({
-  "address.city": "Chennai"
-})
-
-// 10. Read values from an array
-db.customers.find({
-  skills: "MongoDB"
-})
-
-// 11. Read an object inside an array
-db.customers.find({
-  "addresses.type": "office"
-})
-
-// 12. Project only the structured parts needed by the application
-db.customers.find(
-  {},
-  {
-    name: 1,
-    "profile.location": 1,
-    skills: 1,
-    _id: 0
+  items: [
+    { productId: "P100", quantity: 2, price: 499.50 },
+    { productId: "P200", quantity: 1, price: 25.50 }
+  ],
+  shippingAddress: {
+    city: "Chennai",
+    country: "India"
+  },
+  payment: {
+    method: "CARD",
+    status: "AUTHORIZED"
   }
-)
-
-// 13. Show the final document shape
-db.customers.findOne({
-  name: "Ravi"
 })
 
-// End of Lesson 025 demo
+4) Read the complete document
+-----------------------------
+db.orders.findOne({ orderId: "ORD-1001" })
+
+5) Insert a second order with the same overall shape
+-----------------------------------------------------
+db.orders.insertOne({
+  orderId: "ORD-1002",
+  orderDate: new Date(),
+  status: "PLACED",
+  customer: {
+    customerId: "CUST-002",
+    segment: "Standard"
+  },
+  items: [
+    { productId: "P300", quantity: 1, price: 899.00 }
+  ],
+  shippingAddress: {
+    city: "Mumbai",
+    country: "India"
+  },
+  payment: {
+    method: "UPI",
+    status: "PENDING"
+  }
+})
+
+6) Inspect only the business fields
+------------------------------------
+db.orders.find(
+  {},
+  { _id: 0, orderId: 1, status: 1, customer: 1, items: 1, shippingAddress: 1, payment: 1 }
+).pretty()
+
+7) Observe the structure
+------------------------
+Notice the hierarchy:
+order document -> customer / items[] / shippingAddress / payment
+
+Practice
+--------
+Create one more order that keeps the same business shape but changes the number of items, status, shipping city, and payment method.
+Do not introduce abbreviated field names; keep the structure self-describing.

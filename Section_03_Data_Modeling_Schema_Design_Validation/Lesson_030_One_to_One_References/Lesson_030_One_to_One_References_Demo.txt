@@ -1,0 +1,85 @@
+MongoDB mongosh demo — One-to-One — References
+
+Prerequisite
+------------
+Run from a machine where mongosh can connect to MongoDB.
+
+1) Start a clean demo database
+-------------------------------
+use orderdb_references
+db.dropDatabase()
+
+2) Create the related invoice document
+---------------------------------------
+db.invoices.insertOne({
+  _id: ObjectId(),
+  invoiceNumber: "INV-5001",
+  amount: 1299.00,
+  status: "PAID"
+})
+
+3) Capture the related document identifier
+-------------------------------------------
+const invoiceId = db.invoices.findOne({
+  invoiceNumber: "INV-5001"
+})._id
+
+print("Invoice ID:", invoiceId)
+
+4) Create an order that references the invoice
+-----------------------------------------------
+db.orders.insertOne({
+  orderNumber: "ORD-1001",
+  customerId: ObjectId(),
+  invoiceId: invoiceId,
+  status: "CONFIRMED",
+  totalAmount: 1299.00
+})
+
+5) Read the order and inspect the reference
+--------------------------------------------
+db.orders.findOne({
+  orderNumber: "ORD-1001"
+})
+
+6) Resolve the reference with $lookup
+-------------------------------------
+db.orders.aggregate([
+  { $match: { orderNumber: "ORD-1001" } },
+  { $lookup: {
+      from: "invoices",
+      localField: "invoiceId",
+      foreignField: "_id",
+      as: "invoiceDetails"
+  } }
+]).pretty()
+
+7) Update the invoice independently
+------------------------------------
+db.invoices.updateOne(
+  { invoiceNumber: "INV-5001" },
+  { $set: { amount: 1349.00, status: "PAID" } }
+)
+
+8) Verify the reference still works
+----------------------------------
+db.orders.aggregate([
+  { $match: { orderNumber: "ORD-1001" } },
+  { $lookup: {
+      from: "invoices",
+      localField: "invoiceId",
+      foreignField: "_id",
+      as: "invoiceDetails"
+  } }
+]).pretty()
+
+What to observe
+---------------
+• The order stores invoiceId, not the full invoice document.
+• The invoice lives in a separate collection.
+• $lookup can resolve the related data when required.
+• The invoice can be updated independently of the order.
+
+Cleanup (optional)
+------------------
+db.dropDatabase()

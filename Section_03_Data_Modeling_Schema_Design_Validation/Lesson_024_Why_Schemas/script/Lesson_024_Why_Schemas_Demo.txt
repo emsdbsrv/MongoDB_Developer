@@ -1,96 +1,110 @@
-// Lesson 024 — Why Schemas?
-// Topic-specific mongosh demo
-// Focus: flexible schema vs planned schema
-// No schema validation is used in this demo.
+MongoDB Developer Learning Path — Schema Thinking Demo
 
-// 1. Start clean
-use Lesson024_WhySchemas
-db.dropDatabase()
+Purpose
+-------
+Show that MongoDB can allow documents in one collection to evolve, while the application still needs an intentional document contract.
+The demo uses Order Management only.
 
-// 2. MongoDB allows documents with different fields
-db.customers.insertOne({
-  name: "Arun",
-  email: "arun@example.com"
-})
+Prerequisite
+------------
+Run from a machine where mongosh can connect to MongoDB.
 
-db.customers.insertOne({
-  name: "Priya",
-  email: "priya@example.com",
-  phone: "9876543210"
-})
+1) Use the application database
+-------------------------------
+use orderdb
 
-db.customers.insertOne({
-  name: "Kumar",
-  address: {
-    city: "Chennai",
-    country: "India"
+2) Reset the demo collection
+----------------------------
+db.orders.drop()
+
+3) Insert representative documents
+----------------------------------
+db.orders.insertMany([
+  {
+    orderId: "ORD-1001",
+    status: "CONFIRMED",
+    totalAmount: 1250.00
+  },
+  {
+    orderId: "ORD-1002",
+    status: "PLACED",
+    totalAmount: "980.00",
+    priority: true
+  },
+  {
+    orderId: "ORD-1003",
+    status: "SHIPPED",
+    shippingAddress: { city: "Chennai" }
   }
-})
+])
 
-// 3. View the different document shapes
-db.customers.find()
+4) Inspect the different document shapes
+-----------------------------------------
+db.orders.find(
+  {},
+  {
+    _id: 0,
+    orderId: 1,
+    status: 1,
+    totalAmount: 1,
+    priority: 1,
+    shippingAddress: 1
+  }
+).pretty()
 
-// 4. See which fields are present across documents
-db.customers.aggregate([
+Observation
+-----------
+The collection accepts documents with different combinations of fields.
+That flexibility is useful during application evolution, but the developer must decide which differences are intentional.
+
+5) Inspect the BSON type of a field
+----------------------------------
+db.orders.aggregate([
   {
     $project: {
-      name: 1,
-      hasEmail: { $ne: [{ $type: "$email" }, "missing"] },
-      hasPhone: { $ne: [{ $type: "$phone" }, "missing"] },
-      hasAddress: { $ne: [{ $type: "$address" }, "missing"] }
+      orderId: 1,
+      amountType: { $type: "$totalAmount" }
     }
   }
 ])
 
-// 5. Demonstrate a field-name inconsistency
-db.orders.insertOne({
-  orderId: 1001,
-  customerName: "Arun",
-  total: 2500
-})
+Observation
+-----------
+Two documents can use the same field name with different types.
+This is a form of schema drift that the application should detect and resolve deliberately.
 
-db.orders.insertOne({
-  orderId: 1002,
-  customer: "Priya",
-  totalAmount: 3500
-})
-
-// 6. Querying becomes inconsistent when the design is inconsistent
-db.orders.find({ customerName: "Arun" })
-db.orders.find({ customer: "Priya" })
-
-// 7. Create a planned schema shape
-db.plannedCustomers.insertOne({
-  name: "Arun",
-  email: "arun@example.com",
-  phone: null,
-  address: {
-    city: null,
-    country: null
+6) Inspect optional field presence
+---------------------------------
+db.orders.aggregate([
+  {
+    $project: {
+      orderId: 1,
+      hasPriority: { $ne: ["$priority", null] },
+      hasShipping: { $ne: ["$shippingAddress", null] }
+    }
   }
-})
+])
 
-db.plannedCustomers.insertOne({
-  name: "Priya",
-  email: "priya@example.com",
-  phone: "9876543210",
-  address: {
-    city: "Chennai",
-    country: "India"
-  }
-})
+7) Read the intended Order Management shape
+--------------------------------------------
+const intendedOrder = {
+  orderId: "ORD-2001",
+  orderDate: new Date(),
+  status: "CONFIRMED",
+  items: [
+    { productId: "P100", qty: 2, price: 499.50 }
+  ],
+  shippingAddress: { city: "Chennai", country: "India" },
+  payment: { method: "CARD", status: "AUTHORIZED" }
+}
 
-// 8. Compare the planned, predictable structure
-db.plannedCustomers.find().pretty()
+intendedOrder
 
-// 9. Query the planned structure consistently
-db.plannedCustomers.find({
-  "address.city": "Chennai"
-})
+8) Cleanup
+----------
+db.orders.drop()
 
-// 10. Show the lesson point
-print("Flexible schema allows different document shapes.")
-print("Application requirements still need a consistent data design.")
-print("Schema planning makes fields, names, nesting, and access patterns predictable.")
-
-// End of Lesson 024 demo
+Key lesson
+----------
+Flexible schema means the database can accommodate change.
+Schema thinking means the application still defines what the data should mean and how it should be used.

@@ -1,0 +1,70 @@
+JSON Data — mongosh Hands-On Demo
+
+Purpose
+-------
+Practice reading and creating JSON-shaped application data with an Order Management example.
+The script intentionally stays focused on JSON structure and does not deep-dive into BSON.
+
+1) Start mongosh
+----------------
+$ mongosh
+
+2) Switch to an application database
+-------------------------------------
+> use orderdb
+
+3) Build a JSON string
+---------------------
+> const orderJson = JSON.stringify({
+    orderId: "ORD-1001",
+    status: "CONFIRMED",
+    items: [
+        { sku: "KB-101", qty: 2, price: 1499.00 },
+        { sku: "MS-204", qty: 1, price: 799.00 }
+    ],
+    shippingAddress: {
+        city: "Chennai",
+        country: "India"
+    },
+    payment: {
+        method: "CARD",
+        status: "AUTHORIZED"
+    }
+})
+
+4) Parse the JSON string back to an object
+--------------------------------------------
+> const order = JSON.parse(orderJson)
+
+5) Inspect the structure
+------------------------
+> order
+> order.orderId
+> order.items
+> order.shippingAddress.city
+
+6) Insert the parsed object into MongoDB
+-----------------------------------------
+> db.orders.insertOne(order)
+
+7) Read the document back
+-------------------------
+> db.orders.findOne({ orderId: "ORD-1001" })
+
+8) Observe the hierarchy
+------------------------
+- orderId and status are top-level properties.
+- items is an array of objects.
+- shippingAddress is a nested object.
+- payment is another nested object.
+
+9) Practice variation
+---------------------
+Create a second JSON string with a different orderId and status.
+Change the items array to contain two or three items.
+Add a delivery object with fields such as method and status.
+Parse it, insert it, and inspect the resulting document.
+
+10) Cleanup (optional)
+----------------------
+> db.orders.deleteMany({ orderId: /^ORD-/ })

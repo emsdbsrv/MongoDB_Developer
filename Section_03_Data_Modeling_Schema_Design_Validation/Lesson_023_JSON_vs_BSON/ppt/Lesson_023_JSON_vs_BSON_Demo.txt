@@ -1,0 +1,74 @@
+MongoDB hands-on demo — JSON vs BSON
+
+Prerequisite
+Run from a machine where mongosh can connect to MongoDB.
+
+1) Start mongosh
+----------------
+$ mongosh
+
+2) Use an application database
+-------------------------------
+> use orderdb
+
+3) Insert an Order Management document with explicit BSON-aware values
+---------------------------------------------------------------------
+> db.orders.insertOne({
+    orderId: "ORD-1001",
+    orderDate: ISODate("2026-09-15T10:30:00Z"),
+    status: "CONFIRMED",
+    customerId: ObjectId(),
+    totalAmount: Decimal128("1001.00"),
+    items: [
+        { productId: "P100", quantity: 2, unitPrice: Decimal128("499.50") },
+        { productId: "P200", quantity: 1, unitPrice: Decimal128("25.50") }
+    ],
+    shippingAddress: {
+        city: "Chennai",
+        country: "India"
+    },
+    notes: null
+})
+
+4) Read the document back
+-------------------------
+> db.orders.findOne({ orderId: "ORD-1001" })
+
+5) Inspect the BSON types
+-------------------------
+> db.orders.aggregate([
+    { $match: { orderId: "ORD-1001" } },
+    { $project: {
+        _id: 0,
+        orderIdType: { $type: "$orderId" },
+        orderDateType: { $type: "$orderDate" },
+        customerIdType: { $type: "$customerId" },
+        totalAmountType: { $type: "$totalAmount" },
+        notesType: { $type: "$notes" }
+    } }
+]).pretty()
+
+6) Inspect the type of an array value
+--------------------------------------
+> db.orders.aggregate([
+    { $match: { orderId: "ORD-1001" } },
+    { $project: {
+        firstQuantityType: { $type: { $arrayElemAt: ["$items.quantity", 0] } },
+        firstUnitPriceType: { $type: { $arrayElemAt: ["$items.unitPrice", 0] } }
+    } }
+]).pretty()
+
+7) JSON-style view for application thinking
+---------------------------------------------
+> db.orders.findOne(
+    { orderId: "ORD-1001" },
+    { _id: 0, orderId: 1, status: 1, shippingAddress: 1, items: 1 }
+)
+
+Observation
+-----------
+The business object is the same. JSON is a readable representation used widely for application interchange; MongoDB works with BSON and can preserve richer data types.
+
+Cleanup
+-------
+> db.orders.deleteOne({ orderId: "ORD-1001" })

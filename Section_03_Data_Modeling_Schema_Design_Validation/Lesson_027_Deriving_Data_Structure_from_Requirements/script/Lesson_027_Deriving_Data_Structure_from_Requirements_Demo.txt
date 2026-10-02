@@ -1,97 +1,82 @@
-// Lesson 027 — Deriving Data Structure from Requirements
-// Topic-specific mongosh demo
-// Focus: requirements -> access patterns -> document structure
-// No unrelated CRUD or schema-validation topics.
+MongoDB mongosh demo — Deriving Data Structure from Requirements
 
-// 1. Start clean
-use Lesson027_Requirements
-db.dropDatabase()
+Prerequisite
+------------
+Run from a machine where mongosh can connect to MongoDB.
 
-// 2. Business requirement
-// A customer can have:
-// - name and email
-// - one primary address
-// - multiple orders
-//
-// Application access patterns:
-// - Find customer by email
-// - Show customer profile with address
-// - Show a customer's recent orders
+1) Start with the application requirement
+------------------------------------------
+# The application needs to:
+# - show an order with items, shipping and payment
+# - find a customer's orders
+# - update order status
+# - keep product catalog data independent
 
-// 3. Derive an embedded customer profile from the requirement
-db.customers.insertOne({
-  name: "Arun",
-  email: "arun@example.com",
-  address: {
-    street: "MG Road",
+2) Use the application database
+--------------------------------
+use orderdb
+
+3) Reset the topic-specific collections if needed
+---------------------------------------------------
+db.orders.drop()
+db.products.drop()
+
+4) Create one product as independently managed data
+----------------------------------------------------
+db.products.insertOne({
+  sku: "LAP-001",
+  name: "Laptop",
+  category: "Electronics",
+  price: 499.50,
+  stock: 100
+})
+
+5) Create an order from the requirements
+----------------------------------------
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  customerId: "CUST-1001",
+  status: "PLACED",
+  items: [
+    { sku: "LAP-001", qty: 2, unitPrice: 499.50 }
+  ],
+  shippingAddress: {
     city: "Chennai",
     country: "India"
-  }
-})
-
-// 4. Derive an order document from the access pattern
-// Orders are kept separately because they can grow independently.
-db.orders.insertMany([
-  {
-    orderId: 1001,
-    customerEmail: "arun@example.com",
-    orderDate: ISODate("2026-09-20"),
-    total: 2500
   },
-  {
-    orderId: 1002,
-    customerEmail: "arun@example.com",
-    orderDate: ISODate("2026-09-24"),
-    total: 4200
+  payment: {
+    method: "CARD",
+    status: "AUTHORIZED"
   }
-])
-
-// 5. Access pattern: find customer by email
-db.customers.findOne({
-  email: "arun@example.com"
 })
 
-// 6. Access pattern: retrieve orders for that customer
-db.orders.find({
-  customerEmail: "arun@example.com"
-})
+6) Access pattern: get an order with its related data
+-----------------------------------------------------
+db.orders.findOne({ orderId: "ORD-1001" })
 
-// 7. Add a second requirement:
-// The application frequently displays shipping address with the customer.
-// Keep address embedded with the customer.
-db.customers.find(
-  { email: "arun@example.com" },
-  { name: 1, email: 1, address: 1, _id: 0 }
+7) Access pattern: find all orders for a customer
+-------------------------------------------------
+db.orders.find({ customerId: "CUST-1001" }).pretty()
+
+8) Access pattern: update the order status
+--------------------------------------------
+db.orders.updateOne(
+  { orderId: "ORD-1001" },
+  { $set: { status: "CONFIRMED" } }
 )
 
-// 8. Add a relationship to orders using a reference-style identifier.
-// This demonstrates a separate collection for a growing one-to-many relationship.
-db.orders.updateMany(
-  { customerEmail: "arun@example.com" },
-  {
-    $set: {
-      customerId: "CUST-1001"
-    }
-  }
-)
+9) Inspect the derived order document
+-------------------------------------
+db.orders.findOne({ orderId: "ORD-1001" }).pretty()
 
-db.customers.updateOne(
-  { email: "arun@example.com" },
-  {
-    $set: {
-      customerId: "CUST-1001"
-    }
-  }
-)
+10) Review the design decision
+------------------------------
+print("Embedded: items, shippingAddress and payment because they belong to the order read/write unit.")
+print("Reference-style link: customerId and sku connect independent business objects.")
+print("Separate collection: product catalog has its own lifecycle and can grow independently.")
+print("Design flow: requirements -> access patterns -> document shape -> test the model.")
 
-// 9. Verify the derived model
-db.customers.findOne()
-db.orders.find().pretty()
-
-// 10. Show the design decision
-print("Requirement: profile + address -> embed address with customer.")
-print("Requirement: many independently growing orders -> keep orders separate.")
-print("Access pattern drives document shape.")
-print("Document design should reflect how the application reads and writes data.")
-
-// End of Lesson 027 demo
+11) Optional cleanup
+--------------------
+db.orders.drop()
+db.products.drop()
