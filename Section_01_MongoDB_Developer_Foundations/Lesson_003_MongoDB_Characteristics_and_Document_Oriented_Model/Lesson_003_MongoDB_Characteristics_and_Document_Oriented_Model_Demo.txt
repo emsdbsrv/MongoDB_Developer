@@ -1,0 +1,19 @@
+MongoDB mongosh demo — MongoDB Characteristics and Document-Oriented Model
+
+use orderdb
+db.orders.drop()
+
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "CONFIRMED",
+  shippingAddress: { city: "Chennai", postalCode: "600001" },
+  items: [
+    { sku: "KB-101", qty: 2, price: 1499.00 },
+    { sku: "MS-204", qty: 1, price: 799.00 }
+  ],
+  payment: { method: "CARD", status: "AUTHORIZED" }
+})
+
+db.orders.findOne({ orderId: "ORD-1001" })
+db.orders.findOne({ orderId: "ORD-1001", "items.sku": "KB-101" })
+db.orders.findOne({ orderId: "ORD-1001", "shippingAddress.city": "Chennai" })

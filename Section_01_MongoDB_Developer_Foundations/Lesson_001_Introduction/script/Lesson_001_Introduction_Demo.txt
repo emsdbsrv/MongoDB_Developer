@@ -1,0 +1,52 @@
+MongoDB Developer Learning Path — first MongoDB look
+
+Purpose
+-------
+Get a tangible first look at MongoDB using one Order Management document.
+This stays intentionally small: connect, choose a database, insert one document, and read it back.
+
+Prerequisite
+------------
+Run this from a machine where mongosh can connect to your MongoDB instance.
+
+1) Start mongosh
+----------------
+mongosh
+
+2) Choose a database
+--------------------
+use orderdb
+
+3) Create one order document
+----------------------------
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "PLACED",
+  shippingAddress: {
+    city: "Chennai",
+    postalCode: "600001"
+  },
+  items: [
+    { sku: "KB-101", qty: 2, price: 1499.00 }
+  ],
+  payment: {
+    method: "CARD",
+    status: "AUTHORIZED"
+  }
+})
+
+4) Read the document back
+-------------------------
+db.orders.findOne({ orderId: "ORD-1001" })
+
+5) Read all orders in this collection
+--------------------------------------
+db.orders.find().pretty()
+
+6) Simple observation
+---------------------
+Notice that one document can contain nested business information such as a shippingAddress object and an items array.
+
+Practice change
+---------------
+Run the insert again with a different orderId and status. Then query using the new orderId.

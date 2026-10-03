@@ -1,0 +1,81 @@
+Prerequisite
+------------
+Run from a machine where mongosh can connect to MongoDB.
+
+1) Start a clean demo database
+-------------------------------
+use orderdb_one_to_many
+db.dropDatabase()
+
+2) Insert one order with multiple embedded items
+-------------------------------------------------
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "CONFIRMED",
+  totalAmount: 12500.00,
+  items: [
+    { productId: "P100", name: "Laptop", qty: 1, price: 5000.00 },
+    { productId: "P200", name: "Mouse", qty: 2, price: 500.00 }
+  ]
+})
+
+3) Read the complete parent document
+------------------------------------
+db.orders.findOne({
+  orderId: "ORD-1001"
+})
+
+4) Query an embedded child field
+---------------------------------
+db.orders.findOne({
+  orderId: "ORD-1001",
+  "items.productId": "P200"
+})
+
+5) Append a new embedded item with $push
+-----------------------------------------
+db.orders.updateOne(
+  { orderId: "ORD-1001" },
+  {
+    $push: {
+      items: {
+        productId: "P300",
+        name: "Keyboard",
+        qty: 1,
+        price: 1200.00
+      }
+    }
+  }
+)
+
+6) Update one matching embedded item
+-------------------------------------
+db.orders.updateOne(
+  {
+    orderId: "ORD-1001",
+    "items.productId": "P200"
+  },
+  {
+    $set: {
+      "items.$.qty": 3
+    }
+  }
+)
+
+7) Inspect the final order
+--------------------------
+db.orders.findOne({
+  orderId: "ORD-1001"
+})
+
+8) Design observation
+---------------------
+The order remains the parent document.
+The multiple child items stay inside items[].
+The common access path is one document read.
+Revisit embedding when the child collection can grow without a practical bound
+or when children become independently managed.
+
+9) Optional cleanup
+-------------------
+db.dropDatabase()

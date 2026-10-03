@@ -1,0 +1,14 @@
+MongoDB mongosh demo — Shell vs Drivers
+
+// mongosh
+use orderdb
+db.orders.find({ status: "CONFIRMED" }).pretty()
+
+// Application driver equivalent (conceptual)
+// const orders = await db.collection("orders")
+//   .find({ status: "CONFIRMED" })
+//   .toArray()
+
+Observation
+-----------
+Both clients express the same MongoDB filter; the driver puts it inside application code.

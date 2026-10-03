@@ -1,64 +1,64 @@
-// One-to-One — Embedded
-// Topic-specific mongosh demo
-// Example person: Avi
-// Location: Bangalore, RR Nagar
+MongoDB mongosh demo — One-to-One — Embedded
 
-use OneToOneEmbeddedDemo
+Prerequisite
+------------
+Run from a machine where mongosh can connect to MongoDB.
+
+1) Start a clean demo database
+-------------------------------
+use orderdb_one_to_one
 db.dropDatabase()
 
-// Create Avi with one embedded home address.
-db.customers.insertOne({
-  name: "Avi",
-  city: "Bangalore",
-  homeAddress: {
-    area: "RR Nagar",
-    city: "Bangalore",
-    country: "India"
+2) Create one order with one embedded shipping address
+-------------------------------------------------------
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  orderDate: ISODate("2026-09-15T10:30:00Z"),
+  status: "CONFIRMED",
+  totalAmount: 1024.50,
+  shippingAddress: {
+    street: "12 MG Road",
+    city: "Chennai",
+    state: "Tamil Nadu",
+    country: "India",
+    pinCode: "600001"
   }
 })
 
-// Read Avi and the embedded object together.
-db.customers.findOne({
-  name: "Avi"
+3) Read the complete parent document
+------------------------------------
+db.orders.findOne({
+  orderId: "ORD-1001"
 })
 
-// Read only the fields needed by the application.
-db.customers.findOne(
-  { name: "Avi" },
-  {
-    _id: 0,
-    name: 1,
-    city: 1,
-    homeAddress: 1
-  }
+4) Read the embedded one-to-one field
+--------------------------------------
+db.orders.findOne(
+  { orderId: "ORD-1001" },
+  { _id: 0, orderId: 1, shippingAddress: 1 }
 )
 
-// Access the embedded field directly.
-db.customers.findOne({
-  "homeAddress.area": "RR Nagar"
-})
-
-// Access a nested field inside the one-to-one object.
-db.customers.findOne({
-  "homeAddress.city": "Bangalore"
-})
-
-// Update the embedded object as part of Avi's document.
-db.customers.updateOne(
-  { name: "Avi" },
-  {
-    $set: {
-      "homeAddress.country": "India"
-    }
-  }
+5) Read one nested field
+------------------------
+db.orders.findOne(
+  { orderId: "ORD-1001" },
+  { _id: 0, orderId: 1, "shippingAddress.city": 1 }
 )
 
-// Verify the final one-to-one structure.
-db.customers.findOne({
-  name: "Avi"
+6) Verify the address is contained in the same document
+--------------------------------------------------------
+db.orders.countDocuments({
+  orderId: "ORD-1001"
 })
 
-// Topic checkpoint.
-print("Avi has one embedded homeAddress object.")
-print("The related object is stored inside the parent customer document.")
-print("The parent and one-to-one data can be read and updated through the same document.")
+// Expect: 1
+
+7) Design observation
+---------------------
+print("One order contains one shippingAddress object.")
+print("The child is small, bounded, owned, and read with the parent.")
+print("The application can retrieve parent + child in one document read.")
+
+8) Optional cleanup
+-------------------
+db.dropDatabase()

@@ -1,0 +1,89 @@
+// Order Management example
+// Topic-specific mongosh demo
+
+use order_management
+db.dropDatabase()
+
+// Create one parent document and capture its _id.
+const customerId = db.customers.insertOne({
+  customerCode: "CUST-1001",
+  segment: "Enterprise"
+}).insertedId
+
+// Create many child documents in a separate collection.
+// Each child stores the parent identifier in customerId.
+db.orders.insertMany([
+  {
+    orderId: "ORD-1001",
+    customerId: customerId,
+    status: "CONFIRMED",
+    totalAmount: 12500.00
+  },
+  {
+    orderId: "ORD-1002",
+    customerId: customerId,
+    status: "SHIPPED",
+    totalAmount: 4200.00
+  },
+  {
+    orderId: "ORD-1003",
+    customerId: customerId,
+    status: "CREATED",
+    totalAmount: 1899.00
+  }
+])
+
+// Read the parent.
+db.customers.findOne({
+  _id: customerId
+})
+
+// Resolve the one-to-many relationship through customerId.
+db.orders.find({
+  customerId: customerId
+}).sort({
+  orderId: 1
+})
+
+// Query directly from the child side.
+db.orders.find({
+  customerId: customerId,
+  status: "CONFIRMED"
+})
+
+// Update one child independently.
+db.orders.updateOne(
+  {
+    orderId: "ORD-1002",
+    customerId: customerId
+  },
+  {
+    $set: {
+      totalAmount: 4500.00
+    }
+  }
+)
+
+// Verify the updated child.
+db.orders.findOne({
+  orderId: "ORD-1002",
+  customerId: customerId
+})
+
+// Add another child independently.
+db.orders.insertOne({
+  orderId: "ORD-1004",
+  customerId: customerId,
+  status: "CREATED",
+  totalAmount: 18000.00
+})
+
+// Index the reference field for growing order volumes.
+db.orders.createIndex({
+  customerId: 1
+})
+
+db.orders.getIndexes()
+
+// Optional cleanup
+db.dropDatabase()

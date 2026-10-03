@@ -1,0 +1,21 @@
+MongoDB mongosh demo — What Is MongoDB?
+
+Purpose
+-------
+Get a first tangible view of MongoDB through one Order Management document.
+
+use orderdb
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "PLACED",
+  shippingAddress: { city: "Chennai", postalCode: "600001" },
+  items: [{ sku: "KB-101", qty: 2, price: 1499.00 }],
+  payment: { method: "CARD", status: "AUTHORIZED" }
+})
+
+db.orders.findOne({ orderId: "ORD-1001" })
+db.orders.find().pretty()
+
+Practice
+--------
+Insert a second order with a different orderId and status, then query it.

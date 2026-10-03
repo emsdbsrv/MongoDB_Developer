@@ -1,0 +1,19 @@
+MongoDB mongosh demo — MongoDB + Clients: The Big Picture
+
+mongosh
+show dbs
+use orderdb
+show collections
+
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "CONFIRMED"
+})
+
+db.orders.findOne({ orderId: "ORD-1001" })
+
+Architecture reminder
+---------------------
+Application -> Driver -> MongoDB
+Developer -> mongosh -> MongoDB
+Compass -> MongoDB

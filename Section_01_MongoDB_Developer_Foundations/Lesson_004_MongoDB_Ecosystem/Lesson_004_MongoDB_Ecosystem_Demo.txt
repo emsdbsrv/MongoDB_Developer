@@ -1,0 +1,15 @@
+MongoDB mongosh demo — MongoDB Ecosystem
+
+mongosh
+
+use orderdb
+db.createCollection("orders")
+show collections
+
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "CONFIRMED"
+})
+
+db.orders.findOne({ orderId: "ORD-1001" })
+db.version()

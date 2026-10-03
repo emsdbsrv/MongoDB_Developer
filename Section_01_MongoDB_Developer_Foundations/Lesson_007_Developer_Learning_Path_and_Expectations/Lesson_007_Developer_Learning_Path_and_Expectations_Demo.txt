@@ -1,0 +1,18 @@
+MongoDB mongosh demo — Developer Learning Path and Expectations
+
+mongosh
+use orderdb
+show collections
+
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  status: "PLACED",
+  shippingAddress: { city: "Chennai" },
+  items: [{ sku: "KB-101", qty: 2, price: 1499.00 }]
+})
+
+db.orders.findOne({ orderId: "ORD-1001" })
+
+Practice loop
+-------------
+Run the demo. Change the status. Rerun the query. Explain the result in your own words.
