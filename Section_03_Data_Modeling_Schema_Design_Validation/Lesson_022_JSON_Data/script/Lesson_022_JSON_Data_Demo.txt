@@ -1,70 +1,179 @@
-JSON Data — mongosh Hands-On Demo
+// MongoDB mongosh Demo — JSON Data
+// Run step by step in mongosh
 
-Purpose
--------
-Practice reading and creating JSON-shaped application data with an Order Management example.
-The script intentionally stays focused on JSON structure and does not deep-dive into BSON.
+db.runCommand({ ping: 1 })
 
-1) Start mongosh
-----------------
-$ mongosh
+use JSON_Data
 
-2) Switch to an application database
--------------------------------------
-> use orderdb
+db.dropDatabase()
 
-3) Build a JSON string
----------------------
-> const orderJson = JSON.stringify({
-    orderId: "ORD-1001",
-    status: "CONFIRMED",
-    items: [
-        { sku: "KB-101", qty: 2, price: 1499.00 },
-        { sku: "MS-204", qty: 1, price: 799.00 }
-    ],
-    shippingAddress: {
-        city: "Chennai",
-        country: "India"
-    },
-    payment: {
-        method: "CARD",
-        status: "AUTHORIZED"
-    }
+// 1. Create a simple JSON-style document
+db.customers.insertOne({
+  name: "Avi",
+  email: "avi@example.com",
+  age: 40,
+  location: "Bangalore"
 })
 
-4) Parse the JSON string back to an object
---------------------------------------------
-> const order = JSON.parse(orderJson)
+// 2. View the document
+db.customers.find()
 
-5) Inspect the structure
-------------------------
-> order
-> order.orderId
-> order.items
-> order.shippingAddress.city
+// 3. Create a document with a nested JSON object
+db.customers.insertOne({
+  name: "Avi",
+  email: "avi@example.com",
+  address: {
+    street: "MG Road",
+    city: "Bangalore",
+    state: "Karnataka",
+    country: "India"
+  }
+})
 
-6) Insert the parsed object into MongoDB
------------------------------------------
-> db.orders.insertOne(order)
+// 4. Create a document with a JSON array
+db.customers.insertOne({
+  name: "Avi",
+  location: "Bangalore",
+  skills: [
+    "MongoDB",
+    "Java",
+    "Spring Boot"
+  ]
+})
 
-7) Read the document back
--------------------------
-> db.orders.findOne({ orderId: "ORD-1001" })
+// 5. Create a document with nested objects and arrays
+db.customerProfiles.insertOne({
+  name: "Avi",
+  location: {
+    city: "Bangalore",
+    state: "Karnataka",
+    country: "India"
+  },
+  contact: {
+    email: "avi@example.com",
+    phone: "9876543210"
+  },
+  skills: [
+    {
+      name: "MongoDB",
+      level: "Advanced"
+    },
+    {
+      name: "Java",
+      level: "Intermediate"
+    }
+  ]
+})
 
-8) Observe the hierarchy
-------------------------
-- orderId and status are top-level properties.
-- items is an array of objects.
-- shippingAddress is a nested object.
-- payment is another nested object.
+// 6. Create a JSON-style Order Management document
+db.orders.insertOne({
+  orderId: "ORD-1001",
+  customer: {
+    name: "Avi",
+    city: "Bangalore"
+  },
+  status: "CONFIRMED",
+  items: [
+    {
+      sku: "LAP-100",
+      name: "Laptop",
+      qty: 1,
+      price: 75000
+    },
+    {
+      sku: "MOU-200",
+      name: "Mouse",
+      qty: 2,
+      price: 1500
+    }
+  ]
+})
 
-9) Practice variation
----------------------
-Create a second JSON string with a different orderId and status.
-Change the items array to contain two or three items.
-Add a delivery object with fields such as method and status.
-Parse it, insert it, and inspect the resulting document.
+// 7. View the order document
+db.orders.find()
 
-10) Cleanup (optional)
-----------------------
-> db.orders.deleteMany({ orderId: /^ORD-/ })
+// 8. Insert multiple JSON-style product documents
+db.products.insertMany([
+  {
+    name: "Laptop",
+    price: 75000,
+    category: "Electronics"
+  },
+  {
+    name: "Monitor",
+    price: 18000,
+    category: "Electronics"
+  },
+  {
+    name: "Keyboard",
+    price: 2500,
+    category: "Accessories"
+  }
+])
+
+// 9. Read all products
+db.products.find()
+
+// 10. Read selected JSON fields
+db.products.find(
+  {},
+  {
+    name: 1,
+    price: 1,
+    _id: 0
+  }
+)
+
+// 11. Query a nested JSON field
+db.customers.find({
+  "address.city": "Bangalore"
+})
+
+// 12. Query Avi by nested location
+db.orders.find({
+  "customer.city": "Bangalore"
+})
+
+// 13. Query an array value
+db.customers.find({
+  skills: "MongoDB"
+})
+
+// 14. Query an object inside an array
+db.customerProfiles.find({
+  "skills.name": "MongoDB"
+})
+
+// 15. Query a nested order item
+db.orders.find({
+  "items.sku": "MOU-200"
+})
+
+// 16. Read only selected fields from the order
+db.orders.find(
+  { orderId: "ORD-1001" },
+  {
+    _id: 0,
+    orderId: 1,
+    status: 1,
+    "customer.name": 1,
+    "customer.city": 1
+  }
+)
+
+// 17. Count the JSON documents
+db.customers.countDocuments()
+db.customerProfiles.countDocuments()
+db.orders.countDocuments()
+db.products.countDocuments()
+
+// 18. View the collections
+show collections
+
+// 19. Final verification
+db.customers.find().pretty()
+db.customerProfiles.find().pretty()
+db.orders.find().pretty()
+db.products.find().pretty()
+
+// End of demo
